@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫事人員執業異動文字產生器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <header class="py-6 px-4 text-center">
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-800 tracking-wide">醫事人員執業異動文字產生器</h1>
+    </header>
+
+    <main class="flex-grow max-w-2xl w-full mx-auto px-4 pb-12">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 space-y-8">
+            
+            <!-- Step 1: 姓名輸入 -->
+            <div class="space-y-2">
+                <div class="flex items-center space-x-2">
+                    <span class="flex items-center justify-center w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold">1</span>
+                    <label for="applicantName" class="text-sm font-semibold text-slate-700">輸入申請人姓名</label>
+                </div>
+                <input type="text" id="applicantName" placeholder="請輸入姓名（例如：陳小明）" 
+                    class="w-full px-4 py-3 text-sm sm:text-base rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all shadow-sm"
+                    oninput="handleNameInput()">
+            </div>
+
+            <!-- Step 2: 選擇申請類別（單選） -->
+            <div class="space-y-3">
+                <div class="flex items-center space-x-2">
+                    <span class="flex items-center justify-center w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold">2</span>
+                    <h2 class="text-sm font-semibold text-slate-700">選擇申請類別 <span class="text-xs text-slate-400 font-normal">（單選）</span></h2>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" id="categoryGrid">
+                    <!-- 由 JavaScript 動態生成按鈕 -->
+                </div>
+            </div>
+
+            <!-- Step 3: 選擇申請項目（複選） -->
+            <div class="space-y-3">
+                <div class="flex items-center space-x-2">
+                    <span class="flex items-center justify-center w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold">3</span>
+                    <h2 class="text-sm font-semibold text-slate-700">選擇申請項目 <span class="text-xs text-teal-600 font-semibold bg-teal-50 px-2 py-0.5 rounded-full">（可複選）</span></h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2" id="itemGrid">
+                    <!-- 由 JavaScript 動態生成按鈕 -->
+                </div>
+            </div>
+
+            <!-- Step 4: 產生組合文字結果 -->
+            <div class="space-y-4">
+                <div class="flex items-center space-x-2">
+                    <span class="flex items-center justify-center w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold">4</span>
+                    <h2 class="text-sm font-semibold text-slate-700">產生組合文字結果</h2>
+                </div>
+                
+                <div class="bg-slate-900 rounded-xl p-5 text-white relative overflow-hidden flex flex-col sm:flex-row justify-between items-center gap-4 shadow-md">
+                    <!-- 裝飾背景 -->
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-teal-500/10 rounded-full blur-xl pointer-events-none"></div>
+                    
+                    <div class="w-full text-center sm:text-left">
+                        <p id="outputResult" class="text-teal-400 font-bold tracking-wide text-lg sm:text-xl break-all min-h-[1.75rem]">
+                            <!-- 動態組合字串 -->
+                        </p>
+                    </div>
+                    
+                    <button onclick="copyGeneratedText()" class="w-full sm:w-auto flex-shrink-0 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 shadow">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                        </svg>
+                        一鍵複製文字
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 浮動通知提示框 -->
+    <div id="toastMessage" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-xl opacity-0 transform translate-y-4 pointer-events-none transition-all duration-300 flex items-center gap-2 border border-slate-700">
+        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+        <span id="toastContent">已複製！</span>
+    </div>
+
+    <script>
+        // 醫事人員類別清單
+        const categories = [
+            { id: 'physician', label: '醫師' },
+            { id: 'tcm_physician', label: '中醫師' },
+            { id: 'dentist', label: '牙醫師' },
+            { id: 'nurse', label: '護理師(護士)' },
+            { id: 'midwife', label: '助產師(士)' },
+            { id: 'pharmacist', label: '藥師' },
+            { id: 'assistant_pharmacist', label: '藥劑生' },
+            { id: 'respiratory_therapist', label: '呼吸治療師' },
+            { id: 'nutritionist', label: '營養師' },
+            { id: 'medical_technologist', label: '醫事檢驗師(生)' },
+            { id: 'medical_radiation', label: '醫事放射師(士)' },
+            { id: 'clinical_psychologist', label: '臨床心理師' },
+            { id: 'counseling_psychologist', label: '諮商心理師' },
+            { id: 'physical_therapist', label: '物理治療師(生)' },
+            { id: 'occupational_therapist', label: '職能治療師(生)' },
+            { id: 'speech_therapist', label: '語言治療師' },
+            { id: 'audiologist', label: '聽力師' },
+            { id: 'dental_technologist', label: '牙體技術師(生)' },
+            { id: 'optometrist', label: '驗光師(生)' },
+            { id: 'other', label: '其他' }
+        ];
+
+        // 申請項目清單
+        const items = [
+            { id: 'register', label: '執業(現歇業)登記' },
+            { id: 'suspend', label: '停業登記' },
+            { id: 'resume', label: '復業(現停業)登記' },
+            { id: 'cessation', label: '歇業(離職)登記' },
+            { id: 'dept_change', label: '(科別)變更' },
+            { id: 'name_change', label: '(姓名)變更' },
+            { id: 'inst_change', label: '機構變更' },
+            { id: 'cat_change', label: '類別變更' },
+            { id: 'lost_reissue', label: '遺失補發' },
+            { id: 'damage_reissue', label: '損壞補發' },
+            { id: 'renew', label: '到期換發' }
+        ];
+
+        // 目前選取狀態（項目改為陣列支援複選）
+        let selectedCategory = 'physician';
+        let selectedItems = []; // 預設無勾選項目
+
+        window.onload = function() {
+            renderCategories();
+            renderItems();
+            updateGenerator();
+        };
+
+        function renderCategories() {
+            const grid = document.getElementById('categoryGrid');
+            grid.innerHTML = '';
+            
+            categories.forEach(cat => {
+                const isSelected = selectedCategory === cat.id;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `p-2.5 rounded-xl border text-center transition-all duration-150 text-xs font-medium ${
+                    isSelected 
+                    ? 'border-teal-600 bg-teal-50 text-teal-800 ring-2 ring-teal-500/20 font-bold' 
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600'
+                }`;
+                btn.onclick = () => {
+                    selectedCategory = cat.id;
+                    selectedItems = []; // 類別改變時，申請項目全部取消選取
+                    renderCategories();
+                    renderItems();      // 重新渲染項目區塊
+                    updateGenerator();
+                };
+                btn.innerText = cat.label;
+                grid.appendChild(btn);
+            });
+        }
+
+        function renderItems() {
+            const grid = document.getElementById('itemGrid');
+            grid.innerHTML = '';
+
+            items.forEach(item => {
+                const isSelected = selectedItems.includes(item.id);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                // 增加複選時的視覺反饋，例如加入勾選符號
+                btn.className = `p-2.5 rounded-xl border text-center transition-all duration-150 text-xs font-medium flex items-center justify-center gap-1.5 ${
+                    isSelected 
+                    ? 'border-teal-600 bg-teal-50 text-teal-800 ring-2 ring-teal-500/20 font-bold' 
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600'
+                }`;
+                btn.onclick = () => {
+                    toggleItemSelection(item.id);
+                };
+                
+                // 如果被選取，前方加上打勾小圖示
+                if (isSelected) {
+                    btn.innerHTML = `
+                        <svg class="w-3.5 h-3.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>${item.label}</span>
+                    `;
+                } else {
+                    btn.innerText = item.label;
+                }
+                
+                grid.appendChild(btn);
+            });
+        }
+
+        // 處理複選切換邏輯
+        function toggleItemSelection(id) {
+            const index = selectedItems.indexOf(id);
+            if (index > -1) {
+                // 已存在則移除
+                selectedItems.splice(index, 1);
+            } else {
+                // 不存在則加入
+                selectedItems.push(id);
+            }
+            renderItems();
+            updateGenerator();
+        }
+
+        // 處理姓名輸入時，自動清空申請項目
+        function handleNameInput() {
+            selectedItems = []; // 姓名改變時，申請項目全部取消選取
+            renderItems();      // 重新渲染項目區塊
+            updateGenerator();
+        }
+
+        function cleanParentheses(text) {
+            if (!text) return '';
+            
+            // 針對特殊項目，將括號轉化為適合閱讀的格式（不直接刪除）
+            if (text.includes('(科別)') || text.includes('（科別）')) {
+                return '科別變更';
+            }
+            if (text.includes('(姓名)') || text.includes('（姓名）')) {
+                return '姓名變更';
+            }
+            
+            // 其他一般項目，移除括號及裡面的所有補充文字
+            return text.replace(/[\(（].*?[\)）]/g, '');
+        }
+
+        function updateGenerator() {
+            const rawName = document.getElementById('applicantName').value.trim();
+            const displayName = rawName || '（請輸入姓名）';
+            
+            // 處理類別
+            const categoryObj = categories.find(c => c.id === selectedCategory);
+            const cleanedCategory = categoryObj ? cleanParentheses(categoryObj.label) : '';
+
+            // 處理複選項目並用「、」連接
+            const cleanedItemsArray = selectedItems.map(itemId => {
+                const itemObj = items.find(i => i.id === itemId);
+                return itemObj ? cleanParentheses(itemObj.label) : '';
+            }).filter(Boolean); // 過濾掉空字串
+
+            const itemsText = cleanedItemsArray.length > 0 ? cleanedItemsArray.join('、') : '（請選擇項目）';
+
+            // 產生格式： [姓名] 申辦 [申請類別] [申請項目1、項目2]
+            const generatedString = `${displayName}申辦${cleanedCategory}${itemsText}`;
+            document.getElementById('outputResult').innerText = generatedString;
+        }
+
+        function copyGeneratedText() {
+            const rawName = document.getElementById('applicantName').value.trim();
+            if (!rawName) {
+                showToast('❌ 請先輸入上方申請人姓名');
+                return;
+            }
+            if (selectedItems.length === 0) {
+                showToast('❌ 請至少選擇一個申請項目');
+                return;
+            }
+
+            const textToCopy = document.getElementById('outputResult').innerText;
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('📋 已複製文字：' + textToCopy);
+            } catch (err) {
+                showToast('複製失敗，請手動選取複製');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // 顯示提示訊息
+        function showToast(message) {
+            const toast = document.getElementById('toastMessage');
+            const content = document.getElementById('toastContent');
+            content.innerText = message;
+            
+            toast.className = toast.className.replace('opacity-0 translate-y-4 pointer-events-none', 'opacity-100 translate-y-0 pointer-events-auto');
+            
+            setTimeout(() => {
+                toast.className = toast.className.replace('opacity-100 translate-y-0 pointer-events-auto', 'opacity-0 translate-y-4 pointer-events-none');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
