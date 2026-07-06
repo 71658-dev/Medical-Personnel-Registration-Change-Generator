@@ -8,1452 +8,1419 @@
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="fonts.css">
     <style>
-        /* ══════════════════════════════════════════════
-           Design System — CSS Custom Properties
-           ══════════════════════════════════════════════ */
+        /* ═══════════════════════════════════════
+           Design System
+           ═══════════════════════════════════════ */
         :root {
-            /* Colors — Teal / Emerald palette */
-            --c-primary-50:  #effefb;
-            --c-primary-100: #c8fff3;
-            --c-primary-200: #91fee8;
-            --c-primary-300: #53f0d7;
-            --c-primary-400: #20d9c2;
-            --c-primary-500: #0abcaa;
-            --c-primary-600: #05988c;
-            --c-primary-700: #097971;
-            --c-primary-800: #0c5f5b;
-            --c-primary-900: #0f4f4b;
+            --c-primary: #0d9488;
+            --c-primary-light: #14b8a6;
+            --c-primary-lighter: #5eead4;
+            --c-primary-subtle: #ccfbf1;
+            --c-primary-bg: #f0fdfa;
+            --c-primary-900: #134e4a;
 
-            /* Neutral — Slate */
-            --c-slate-50:  #f8fafc;
-            --c-slate-100: #f1f5f9;
-            --c-slate-200: #e2e8f0;
-            --c-slate-300: #cbd5e1;
-            --c-slate-400: #94a3b8;
-            --c-slate-500: #64748b;
-            --c-slate-600: #475569;
-            --c-slate-700: #334155;
-            --c-slate-800: #1e293b;
-            --c-slate-900: #0f172a;
-            --c-slate-950: #020617;
+            --c-surface: #ffffff;
+            --c-surface-raised: #ffffff;
+            --c-surface-sunken: #f8fafc;
+            --c-surface-overlay: rgba(255,255,255,0.82);
 
-            /* Semantic */
-            --c-success: #22c55e;
-            --c-error:   #ef4444;
-            --c-warning: #f59e0b;
+            --c-border: #e2e8f0;
+            --c-border-light: #f1f5f9;
+            --c-border-focus: var(--c-primary);
 
-            /* Surfaces */
-            --surface-bg: var(--c-slate-50);
-            --surface-card: rgba(255, 255, 255, 0.72);
-            --surface-card-border: rgba(255, 255, 255, 0.45);
+            --c-text: #1e293b;
+            --c-text-secondary: #64748b;
+            --c-text-tertiary: #94a3b8;
+            --c-text-inverse: #ffffff;
 
-            /* Typography */
-            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", "PingFang TC", "Heiti TC", sans-serif;
+            --c-success: #10b981;
+            --c-success-bg: #ecfdf5;
+            --c-error: #ef4444;
+            --c-error-bg: #fef2f2;
 
-            /* Spacing */
-            --space-xs: 0.25rem;
-            --space-sm: 0.5rem;
-            --space-md: 1rem;
-            --space-lg: 1.5rem;
-            --space-xl: 2rem;
-            --space-2xl: 3rem;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', monospace;
 
-            /* Radius */
-            --radius-sm: 0.5rem;
-            --radius-md: 0.75rem;
-            --radius-lg: 1rem;
-            --radius-xl: 1.25rem;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
             --radius-full: 9999px;
 
-            /* Shadows */
-            --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
-            --shadow-lg: 0 12px 32px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
-            --shadow-xl: 0 20px 48px rgba(0,0,0,0.10), 0 8px 16px rgba(0,0,0,0.05);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.08);
+            --shadow-glow: 0 0 0 3px rgba(13,148,136,0.12);
+            --shadow-glow-lg: 0 0 24px rgba(13,148,136,0.15);
 
-            /* Transitions */
-            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
             --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-            --duration-fast: 150ms;
-            --duration-normal: 250ms;
-            --duration-slow: 400ms;
+            --dur: 200ms;
+            --dur-slow: 350ms;
         }
 
-        /* ══════════════════════════════════════════════
-           Reset & Base
-           ══════════════════════════════════════════════ */
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* ═══════════════════════════════════════
+           Reset
+           ═══════════════════════════════════════ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { line-height: 1.5; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+        body { font-family: var(--font); color: var(--c-text); background: var(--c-surface-sunken); min-height: 100dvh; overflow-x: hidden; }
+        button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+        input { font: inherit; border: none; outline: none; background: none; }
+        :focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+        button:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: none; }
 
-        html {
-            line-height: 1.5;
-            -webkit-text-size-adjust: 100%;
-            -webkit-tap-highlight-color: transparent;
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: var(--font-family);
-            color: var(--c-slate-800);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        button {
-            font-family: inherit;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: inherit;
-            color: inherit;
-        }
-
-        input {
-            font-family: inherit;
-            border: none;
-            outline: none;
-            background: none;
-        }
-
-        /* ══════════════════════════════════════════════
-           Animated Background
-           ══════════════════════════════════════════════ */
+        /* ═══════════════════════════════════════
+           Subtle Background
+           ═══════════════════════════════════════ */
         body::before {
             content: '';
-            position: fixed;
-            inset: 0;
-            z-index: -2;
-            background: 
-                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(10, 188, 170, 0.08) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(5, 152, 140, 0.06) 0%, transparent 60%),
-                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(20, 215, 196, 0.04) 0%, transparent 60%),
-                linear-gradient(160deg, #f0fdfa 0%, #f8fafc 30%, #f0f9ff 60%, #f5f3ff 100%);
-            animation: bgShift 20s ease-in-out infinite alternate;
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background:
+                radial-gradient(ellipse 70% 50% at 15% 5%, rgba(13,148,136,0.05) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 85% 90%, rgba(13,148,136,0.04) 0%, transparent 60%);
         }
 
-        @keyframes bgShift {
-            0%   { opacity: 1; }
-            50%  { opacity: 0.85; }
-            100% { opacity: 1; }
-        }
-
-        /* Subtle floating orbs */
-        body::after {
-            content: '';
-            position: fixed;
-            width: 500px;
-            height: 500px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(10, 188, 170, 0.06) 0%, transparent 70%);
-            top: -100px;
-            right: -150px;
-            z-index: -1;
-            animation: orbFloat 15s ease-in-out infinite alternate;
-            pointer-events: none;
-        }
-
-        @keyframes orbFloat {
-            0%   { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(-40px, 60px) scale(1.1); }
-        }
-
-        /* ══════════════════════════════════════════════
-           Header
-           ══════════════════════════════════════════════ */
+        /* ═══════════════════════════════════════
+           App Shell
+           ═══════════════════════════════════════ */
         .app-header {
-            padding: var(--space-xl) var(--space-md);
-            text-align: center;
-            animation: fadeSlideDown 0.6s var(--ease-out) both;
-        }
-
-        .app-header h1 {
-            font-size: 1.35rem;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            background: linear-gradient(135deg, var(--c-primary-700) 0%, var(--c-primary-500) 50%, var(--c-primary-600) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .app-header .subtitle {
-            font-size: 0.8rem;
-            color: var(--c-slate-400);
-            margin-top: 0.25rem;
-            font-weight: 400;
-        }
-
-        @media (min-width: 640px) {
-            .app-header h1 { font-size: 1.6rem; }
-            .app-header .subtitle { font-size: 0.85rem; }
-        }
-
-        /* ══════════════════════════════════════════════
-           Main Layout
-           ══════════════════════════════════════════════ */
-        .app-main {
-            flex: 1;
-            max-width: 52rem;
-            width: 100%;
-            margin: 0 auto;
-            padding: 0 var(--space-md) var(--space-2xl);
-        }
-
-        /* ══════════════════════════════════════════════
-           Glassmorphism Card
-           ══════════════════════════════════════════════ */
-        .glass-card {
-            background: var(--surface-card);
-            backdrop-filter: blur(20px) saturate(1.4);
-            -webkit-backdrop-filter: blur(20px) saturate(1.4);
-            border: 1px solid var(--surface-card-border);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.6);
-            padding: var(--space-lg);
-            animation: cardEnter 0.7s var(--ease-out) 0.1s both;
-        }
-
-        @media (min-width: 640px) {
-            .glass-card { padding: var(--space-xl) var(--space-2xl); }
-        }
-
-        @keyframes cardEnter {
-            from { opacity: 0; transform: translateY(24px) scale(0.98); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        /* ══════════════════════════════════════════════
-           Step Sections & Progress
-           ══════════════════════════════════════════════ */
-        .steps-container {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-xl);
-            position: relative;
-        }
-
-        /* Vertical progress rail */
-        .steps-container::before {
-            content: '';
-            position: absolute;
-            left: 13px;
-            top: 32px;
-            bottom: 32px;
-            width: 2px;
-            background: var(--c-slate-200);
-            border-radius: 1px;
-            z-index: 0;
-        }
-
-        .step-progress-fill {
-            position: absolute;
-            left: 13px;
-            top: 32px;
-            width: 2px;
-            background: linear-gradient(180deg, var(--c-primary-400), var(--c-primary-600));
-            border-radius: 1px;
-            z-index: 1;
-            transition: height var(--duration-slow) var(--ease-out);
-            box-shadow: 0 0 8px rgba(10, 188, 170, 0.3);
-        }
-
-        .step-section {
-            position: relative;
-            z-index: 2;
-            opacity: 0;
-            animation: stepFadeIn 0.5s var(--ease-out) both;
-        }
-
-        .step-section:nth-child(2) { animation-delay: 0.15s; }
-        .step-section:nth-child(3) { animation-delay: 0.25s; }
-        .step-section:nth-child(4) { animation-delay: 0.35s; }
-        .step-section:nth-child(5) { animation-delay: 0.45s; }
-
-        @keyframes stepFadeIn {
-            from { opacity: 0; transform: translateX(-8px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-
-        .step-header {
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .step-badge {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
-            flex-shrink: 0;
-            transition: all var(--duration-normal) var(--ease-out);
-            position: relative;
-        }
-
-        .step-badge.inactive {
-            background: var(--c-slate-100);
-            color: var(--c-slate-400);
-            border: 2px solid var(--c-slate-200);
-        }
-
-        .step-badge.active {
-            background: linear-gradient(135deg, var(--c-primary-500), var(--c-primary-600));
-            color: white;
-            border: 2px solid transparent;
-            box-shadow: 0 0 0 3px rgba(10, 188, 170, 0.15), 0 2px 8px rgba(10, 188, 170, 0.25);
-        }
-
-        .step-badge.completed {
-            background: linear-gradient(135deg, var(--c-primary-500), var(--c-primary-600));
-            color: white;
-            border: 2px solid transparent;
-            box-shadow: 0 0 0 3px rgba(10, 188, 170, 0.15);
-        }
-
-        .step-badge.completed::after {
-            content: '✓';
-            position: absolute;
-            font-size: 0.7rem;
-            font-weight: 900;
-        }
-
-        .step-badge.completed span { visibility: hidden; }
-
-        .step-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--c-slate-700);
-            letter-spacing: 0.01em;
-        }
-
-        .step-hint {
-            font-size: 0.7rem;
-            font-weight: 500;
-            color: var(--c-primary-600);
-            background: var(--c-primary-50);
-            padding: 0.15rem 0.5rem;
-            border-radius: var(--radius-full);
-            margin-left: 0.35rem;
-        }
-
-        .step-content {
-            padding-left: calc(28px + 0.65rem);
-        }
-
-        /* ══════════════════════════════════════════════
-           Step 1 — Name Input
-           ══════════════════════════════════════════════ */
-        .name-input-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .input-wrapper {
-            flex: 1;
-            position: relative;
-        }
-
-        .input-field {
-            width: 100%;
+            position: sticky; top: 0; z-index: 100;
+            background: var(--c-surface-overlay);
+            backdrop-filter: blur(16px) saturate(1.5);
+            -webkit-backdrop-filter: blur(16px) saturate(1.5);
+            border-bottom: 1px solid var(--c-border-light);
             padding: 0.75rem 1rem;
-            padding-right: 2.5rem;
-            font-size: 0.9rem;
-            color: var(--c-slate-800);
-            background: white;
-            border: 1.5px solid var(--c-slate-200);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-xs), inset 0 1px 3px rgba(0,0,0,0.03);
-            transition: all var(--duration-normal) var(--ease-out);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 0.75rem;
         }
 
-        .input-field::placeholder {
-            color: var(--c-slate-400);
-            font-weight: 400;
+        .header-brand {
+            display: flex; align-items: center; gap: 0.6rem;
+            min-width: 0;
         }
 
-        .input-field:hover {
-            border-color: var(--c-slate-300);
+        .header-logo {
+            width: 32px; height: 32px; border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--c-primary), var(--c-primary-light));
+            display: flex; align-items: center; justify-content: center;
+            color: white; flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(13,148,136,0.25);
         }
 
-        .input-field:focus {
-            border-color: var(--c-primary-400);
-            box-shadow: 0 0 0 3px rgba(10, 188, 170, 0.1), var(--shadow-xs), inset 0 1px 3px rgba(0,0,0,0.03);
+        .header-title {
+            font-size: 0.95rem; font-weight: 700; color: var(--c-text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            letter-spacing: -0.01em;
         }
 
-        .input-check {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%) scale(0);
-            color: var(--c-success);
-            transition: transform var(--duration-normal) var(--ease-bounce);
-            pointer-events: none;
+        .header-actions {
+            display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0;
         }
 
-        .input-check.visible {
-            transform: translateY(-50%) scale(1);
+        .icon-btn {
+            width: 36px; height: 36px; border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--c-text-secondary);
+            transition: all var(--dur) var(--ease);
+            position: relative;
         }
 
-        .reset-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--c-slate-400);
-            border-radius: var(--radius-sm);
-            transition: all var(--duration-normal) var(--ease-out);
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
+        .icon-btn:hover { background: var(--c-surface-sunken); color: var(--c-text); }
+        .icon-btn:active { transform: scale(0.92); }
 
-        .reset-btn:hover {
-            color: var(--c-primary-600);
-            background: var(--c-primary-50);
-        }
-
-        .reset-btn:hover .reset-icon {
-            transform: rotate(-180deg);
-        }
-
-        .reset-icon {
-            width: 14px;
-            height: 14px;
-            transition: transform var(--duration-slow) var(--ease-out);
-        }
-
-        /* ══════════════════════════════════════════════
-           Step 2 — Category Tabs + Grid
-           ══════════════════════════════════════════════ */
-        .category-tabs {
-            display: flex;
-            gap: 0.3rem;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .category-tabs::-webkit-scrollbar { display: none; }
-
-        .category-tab {
-            flex-shrink: 0;
-            padding: 0.4rem 0.9rem;
+        .icon-btn .badge {
+            position: absolute; top: 4px; right: 4px;
+            min-width: 14px; height: 14px; padding: 0 3px;
             border-radius: var(--radius-full);
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: 1.5px solid var(--c-slate-200);
-            background: white;
-            color: var(--c-slate-500);
-            transition: all var(--duration-fast) var(--ease-out);
+            background: var(--c-primary);
+            color: white; font-size: 0.55rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            transform: scale(0);
+            transition: transform var(--dur) var(--ease-bounce);
+        }
+
+        .icon-btn .badge.visible { transform: scale(1); }
+
+        /* ═══════════════════════════════════════
+           Two-Column Layout
+           ═══════════════════════════════════════ */
+        .app-layout {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 1.25rem 1rem 6.5rem;
+            display: flex;
+            gap: 1.25rem;
+            align-items: flex-start;
+        }
+
+        .col-input { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1rem; }
+
+        .col-preview {
+            width: 340px; flex-shrink: 0;
+            position: sticky; top: 72px;
+            display: flex; flex-direction: column; gap: 1rem;
+        }
+
+        /* ═══════════════════════════════════════
+           Cards
+           ═══════════════════════════════════════ */
+        .card {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: box-shadow var(--dur) var(--ease);
+        }
+
+        .card:hover { box-shadow: var(--shadow-md); }
+
+        .card-header {
+            padding: 0.85rem 1rem 0;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .card-label {
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        .card-label-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--c-text-tertiary);
+            transition: all var(--dur-slow) var(--ease);
+            flex-shrink: 0;
+        }
+
+        .card-label-dot.active { background: var(--c-primary); box-shadow: 0 0 6px rgba(13,148,136,0.4); }
+        .card-label-dot.completed { background: var(--c-success); box-shadow: 0 0 6px rgba(16,185,129,0.4); }
+
+        .card-label-text {
+            font-size: 0.78rem; font-weight: 600; color: var(--c-text-secondary);
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+
+        .card-badge {
+            font-size: 0.65rem; font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: var(--radius-full);
+            background: var(--c-primary-bg);
+            color: var(--c-primary);
+        }
+
+        .card-body { padding: 0.75rem 1rem 1rem; }
+
+        /* ═══════════════════════════════════════
+           Name Input
+           ═══════════════════════════════════════ */
+        .name-field {
+            position: relative;
+        }
+
+        .name-input {
+            width: 100%;
+            padding: 0.7rem 2.8rem 0.7rem 0.85rem;
+            font-size: 0.9rem; font-weight: 500;
+            color: var(--c-text);
+            background: var(--c-surface-sunken);
+            border: 1.5px solid var(--c-border);
+            border-radius: var(--radius-md);
+            transition: all var(--dur) var(--ease);
+        }
+
+        .name-input::placeholder { color: var(--c-text-tertiary); font-weight: 400; }
+        .name-input:hover { border-color: var(--c-text-tertiary); }
+        .name-input:focus { border-color: var(--c-primary); box-shadow: var(--shadow-glow); background: var(--c-surface); }
+
+        .name-clear {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--c-text-tertiary);
+            opacity: 0; pointer-events: none;
+            transition: all var(--dur) var(--ease);
+        }
+
+        .name-clear.visible { opacity: 1; pointer-events: auto; }
+        .name-clear:hover { background: var(--c-border-light); color: var(--c-text-secondary); }
+
+        /* Recent names dropdown */
+        .name-suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            margin-top: 4px; z-index: 50;
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            display: none;
+        }
+
+        .name-suggestions.open { display: block; }
+
+        .name-suggestion-item {
+            width: 100%;
+            padding: 0.55rem 0.85rem;
+            font-size: 0.82rem; text-align: left;
+            color: var(--c-text);
+            display: flex; align-items: center; justify-content: space-between;
+            transition: background var(--dur);
+        }
+
+        .name-suggestion-item:hover { background: var(--c-surface-sunken); }
+        .name-suggestion-item:not(:last-child) { border-bottom: 1px solid var(--c-border-light); }
+
+        .name-suggestion-item .hint {
+            font-size: 0.68rem; color: var(--c-text-tertiary);
+        }
+
+        /* ═══════════════════════════════════════
+           Category Tabs & Grid
+           ═══════════════════════════════════════ */
+        .tabs-scroll {
+            display: flex; gap: 4px;
+            overflow-x: auto; padding-bottom: 0.5rem;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+        }
+
+        .tabs-scroll::-webkit-scrollbar { display: none; }
+
+        .tab-pill {
+            flex-shrink: 0;
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem; font-weight: 600;
+            color: var(--c-text-tertiary);
+            background: transparent;
+            border: 1.5px solid transparent;
+            transition: all var(--dur) var(--ease);
             white-space: nowrap;
             scroll-snap-align: start;
-            position: relative;
         }
 
-        .category-tab:hover {
-            border-color: var(--c-primary-300);
-            color: var(--c-primary-600);
-            background: var(--c-primary-50);
+        .tab-pill:hover { color: var(--c-text-secondary); background: var(--c-surface-sunken); }
+        .tab-pill.active {
+            color: var(--c-primary);
+            background: var(--c-primary-bg);
+            border-color: rgba(13,148,136,0.15);
         }
 
-        .category-tab.active {
-            background: linear-gradient(135deg, var(--c-primary-500), var(--c-primary-600));
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 2px 8px rgba(10, 188, 170, 0.3);
-        }
-
-        .category-panel {
-            background: linear-gradient(135deg, var(--c-slate-50) 0%, rgba(240, 253, 250, 0.5) 100%);
-            padding: 0.85rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--c-slate-100);
-            animation: panelFade 0.25s var(--ease-out);
-        }
-
-        @keyframes panelFade {
-            from { opacity: 0; transform: translateY(4px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .category-grid {
+        .cat-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.45rem;
+            gap: 6px;
         }
 
-        @media (min-width: 640px) {
-            .category-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (min-width: 768px) {
-            .category-grid { grid-template-columns: repeat(4, 1fr); }
-        }
+        @media (min-width: 640px) { .cat-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 900px) { .cat-grid { grid-template-columns: repeat(4, 1fr); } }
 
         .cat-btn {
-            padding: 0.6rem 0.5rem;
-            border-radius: var(--radius-md);
-            border: 1.5px solid var(--c-slate-200);
-            background: white;
-            color: var(--c-slate-600);
-            font-size: 0.82rem;
-            font-weight: 500;
+            padding: 0.55rem 0.4rem;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--c-border);
+            background: var(--c-surface);
+            color: var(--c-text-secondary);
+            font-size: 0.8rem; font-weight: 500;
             text-align: center;
-            transition: all var(--duration-fast) var(--ease-out);
+            transition: all var(--dur) var(--ease);
             cursor: pointer;
-            box-shadow: var(--shadow-xs);
             position: relative;
-            overflow: hidden;
-        }
-
-        .cat-btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(10, 188, 170, 0.04) 0%, transparent 100%);
-            opacity: 0;
-            transition: opacity var(--duration-fast);
         }
 
         .cat-btn:hover {
-            border-color: var(--c-primary-300);
+            border-color: var(--c-primary-lighter);
+            color: var(--c-text);
             transform: translateY(-1px);
             box-shadow: var(--shadow-sm);
         }
 
-        .cat-btn:hover::before { opacity: 1; }
-
-        .cat-btn:active {
-            transform: translateY(0) scale(0.98);
-        }
+        .cat-btn:active { transform: translateY(0) scale(0.97); }
 
         .cat-btn.selected {
-            border-color: var(--c-primary-500);
-            background: linear-gradient(135deg, var(--c-primary-50) 0%, rgba(200, 255, 243, 0.5) 100%);
-            color: var(--c-primary-800);
+            border-color: var(--c-primary);
+            background: var(--c-primary-bg);
+            color: var(--c-primary-900);
             font-weight: 700;
-            box-shadow: 0 0 0 2.5px rgba(10, 188, 170, 0.12), var(--shadow-sm);
+            box-shadow: var(--shadow-glow);
         }
 
-        /* ══════════════════════════════════════════════
-           Step 3 — Application Items (Chips)
-           ══════════════════════════════════════════════ */
-        .items-header-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .selected-count {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 20px;
-            height: 20px;
-            padding: 0 0.35rem;
-            border-radius: var(--radius-full);
-            background: var(--c-primary-500);
-            color: white;
-            font-size: 0.65rem;
-            font-weight: 700;
-            transition: all var(--duration-normal) var(--ease-bounce);
-            transform: scale(0);
-        }
-
-        .selected-count.visible {
-            transform: scale(1);
-        }
-
+        /* ═══════════════════════════════════════
+           Item Chips
+           ═══════════════════════════════════════ */
         .items-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.45rem;
+            gap: 6px;
         }
 
-        @media (min-width: 640px) {
-            .items-grid { grid-template-columns: repeat(3, 1fr); }
-        }
+        @media (min-width: 640px) { .items-grid { grid-template-columns: repeat(3, 1fr); } }
 
         .item-chip {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            padding: 0.65rem 0.6rem;
-            border-radius: var(--radius-md);
-            border: 1.5px solid var(--c-slate-200);
-            background: white;
-            color: var(--c-slate-600);
-            font-size: 0.82rem;
-            font-weight: 500;
+            display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+            padding: 0.6rem 0.4rem;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--c-border);
+            background: var(--c-surface);
+            color: var(--c-text-secondary);
+            font-size: 0.8rem; font-weight: 500;
             cursor: pointer;
-            transition: all var(--duration-fast) var(--ease-out);
-            box-shadow: var(--shadow-xs);
-            position: relative;
-            overflow: hidden;
+            transition: all var(--dur) var(--ease);
             user-select: none;
         }
 
         .item-chip:hover {
-            border-color: var(--c-slate-300);
-            background: var(--c-slate-50);
+            border-color: var(--c-text-tertiary);
+            color: var(--c-text);
             transform: translateY(-1px);
             box-shadow: var(--shadow-sm);
         }
 
-        .item-chip:active {
-            transform: translateY(0) scale(0.97);
-        }
+        .item-chip:active { transform: translateY(0) scale(0.97); }
 
         .item-chip.selected {
-            border-color: var(--c-primary-500);
-            background: linear-gradient(135deg, var(--c-primary-50) 0%, rgba(200, 255, 243, 0.4) 100%);
-            color: var(--c-primary-800);
+            border-color: var(--c-primary);
+            background: var(--c-primary-bg);
+            color: var(--c-primary-900);
             font-weight: 700;
-            box-shadow: 0 0 0 2.5px rgba(10, 188, 170, 0.12), var(--shadow-sm);
+            box-shadow: var(--shadow-glow);
         }
 
-        .item-chip.selected .chip-check {
-            transform: scale(1);
-            opacity: 1;
-        }
-
-        .chip-check {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--c-primary-500);
+        .check-dot {
+            width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+            background: var(--c-primary);
             color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             transform: scale(0);
-            opacity: 0;
-            transition: all var(--duration-normal) var(--ease-bounce);
-            flex-shrink: 0;
+            transition: transform var(--dur) var(--ease-bounce);
         }
 
-        .chip-check svg {
-            width: 10px;
-            height: 10px;
+        .item-chip.selected .check-dot { transform: scale(1); }
+
+        .check-dot svg { width: 10px; height: 10px; }
+
+        .item-count-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 18px; height: 18px; padding: 0 4px;
+            border-radius: var(--radius-full);
+            background: var(--c-primary);
+            color: white; font-size: 0.6rem; font-weight: 700;
+            transform: scale(0);
+            transition: transform var(--dur) var(--ease-bounce);
         }
 
-        /* ══════════════════════════════════════════════
-           Step 4 — Output Card
-           ══════════════════════════════════════════════ */
-        .output-card {
-            position: relative;
+        .item-count-badge.visible { transform: scale(1); }
+
+        /* ═══════════════════════════════════════
+           Preview Card (Desktop Sidebar)
+           ═══════════════════════════════════════ */
+        .preview-card {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
             border-radius: var(--radius-lg);
-            padding: 2px; /* border thickness */
-            background: conic-gradient(
-                from 0deg,
-                var(--c-primary-400),
-                var(--c-primary-600),
-                var(--c-slate-700),
-                var(--c-primary-800),
-                var(--c-primary-400)
-            );
-            background-size: 100% 100%;
-            animation: borderRotate 6s linear infinite;
-            box-shadow: var(--shadow-lg);
-        }
-
-        @keyframes borderRotate {
-            to { filter: hue-rotate(15deg); }
-        }
-
-        @property --gradient-angle {
-            syntax: '<angle>';
-            initial-value: 0deg;
-            inherits: false;
-        }
-
-        .output-inner {
-            background: var(--c-slate-900);
-            border-radius: calc(var(--radius-lg) - 2px);
-            padding: var(--space-lg);
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-md);
-            position: relative;
             overflow: hidden;
         }
 
-        @media (min-width: 640px) {
-            .output-inner {
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-between;
-            }
+        .preview-header {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--c-border-light);
+            display: flex; align-items: center; justify-content: space-between;
         }
 
-        /* Decorative orb */
-        .output-inner::before {
-            content: '';
-            position: absolute;
-            top: -30px;
-            right: -30px;
-            width: 120px;
-            height: 120px;
-            background: radial-gradient(circle, rgba(10, 188, 170, 0.15) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
+        .preview-label {
+            font-size: 0.75rem; font-weight: 600;
+            color: var(--c-text-secondary);
+            text-transform: uppercase; letter-spacing: 0.06em;
         }
 
-        .output-text {
-            flex: 1;
-            text-align: center;
+        .preview-status {
+            font-size: 0.65rem; font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--radius-full);
+            transition: all var(--dur-slow);
+        }
+
+        .preview-status.incomplete { background: var(--c-surface-sunken); color: var(--c-text-tertiary); }
+        .preview-status.ready { background: var(--c-success-bg); color: var(--c-success); }
+
+        .preview-body {
+            padding: 1rem;
+        }
+
+        .preview-result {
+            background: var(--c-surface-sunken);
+            border: 1px solid var(--c-border-light);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            min-height: 3.5rem;
+            display: flex; align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-result-text {
+            font-size: 0.95rem; font-weight: 600;
+            color: var(--c-text);
             word-break: break-all;
-            min-height: 1.75rem;
-        }
-
-        @media (min-width: 640px) {
-            .output-text { text-align: left; }
-        }
-
-        #outputResult {
-            color: var(--c-primary-300);
-            font-weight: 700;
-            font-size: 1.05rem;
-            letter-spacing: 0.02em;
             line-height: 1.6;
-            transition: opacity var(--duration-normal);
+            transition: color var(--dur);
         }
 
-        @media (min-width: 640px) {
-            #outputResult { font-size: 1.2rem; }
-        }
+        .preview-result-text.placeholder { color: var(--c-text-tertiary); font-weight: 400; }
 
         .copy-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.7rem 1.25rem;
-            background: linear-gradient(135deg, var(--c-primary-500), var(--c-primary-600));
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            transition: all var(--dur) var(--ease);
+            position: relative; overflow: hidden;
+        }
+
+        .copy-btn.primary {
+            background: var(--c-primary);
             color: white;
-            font-size: 0.85rem;
-            font-weight: 600;
-            border-radius: var(--radius-sm);
-            transition: all var(--duration-fast) var(--ease-out);
-            white-space: nowrap;
-            flex-shrink: 0;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(10, 188, 170, 0.3);
+            box-shadow: 0 2px 8px rgba(13,148,136,0.25);
         }
 
-        .copy-btn:hover {
-            background: linear-gradient(135deg, var(--c-primary-400), var(--c-primary-500));
+        .copy-btn.primary:hover {
+            background: var(--c-primary-light);
             transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(10, 188, 170, 0.35);
+            box-shadow: 0 4px 16px rgba(13,148,136,0.3);
         }
 
-        .copy-btn:active {
-            transform: translateY(0) scale(0.97);
+        .copy-btn.primary:active { transform: translateY(0) scale(0.98); }
+
+        .copy-btn.primary:disabled {
+            background: var(--c-border);
+            color: var(--c-text-tertiary);
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        /* Ripple effect */
         .copy-btn .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            transform: scale(0);
-            animation: rippleAnim 0.5s ease-out;
+            position: absolute; border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            transform: scale(0); animation: ripple 0.5s ease-out;
             pointer-events: none;
         }
 
-        @keyframes rippleAnim {
-            to { transform: scale(3); opacity: 0; }
+        @keyframes ripple { to { transform: scale(3); opacity: 0; } }
+
+        .copy-btn svg { width: 16px; height: 16px; }
+
+        .shortcut-hint {
+            font-size: 0.65rem; font-weight: 500;
+            color: var(--c-text-tertiary);
+            margin-top: 0.5rem;
+            text-align: center;
+            display: flex; align-items: center; justify-content: center; gap: 0.25rem;
         }
 
-        .copy-btn .btn-icon {
-            width: 16px;
-            height: 16px;
-            transition: all var(--duration-normal) var(--ease-out);
+        .key-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0.1rem 0.35rem;
+            border-radius: 4px;
+            background: var(--c-surface-sunken);
+            border: 1px solid var(--c-border);
+            font-size: 0.6rem; font-weight: 600;
+            color: var(--c-text-secondary);
+            line-height: 1;
         }
 
-        /* ══════════════════════════════════════════════
-           Toast Notification
-           ══════════════════════════════════════════════ */
+        /* ═══════════════════════════════════════
+           History Panel
+           ═══════════════════════════════════════ */
+        .history-card {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .history-header {
+            padding: 0.7rem 1rem;
+            display: flex; align-items: center; justify-content: space-between;
+            cursor: pointer;
+            transition: background var(--dur);
+        }
+
+        .history-header:hover { background: var(--c-surface-sunken); }
+
+        .history-label {
+            font-size: 0.72rem; font-weight: 600;
+            color: var(--c-text-tertiary);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            display: flex; align-items: center; gap: 0.35rem;
+        }
+
+        .history-toggle {
+            width: 20px; height: 20px;
+            color: var(--c-text-tertiary);
+            transition: transform var(--dur) var(--ease);
+        }
+
+        .history-toggle.open { transform: rotate(180deg); }
+
+        .history-body {
+            max-height: 0; overflow: hidden;
+            transition: max-height var(--dur-slow) var(--ease);
+        }
+
+        .history-body.open { max-height: 400px; }
+
+        .history-list { padding: 0 0.5rem 0.5rem; }
+
+        .history-item {
+            width: 100%;
+            padding: 0.5rem 0.6rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem; font-weight: 400;
+            color: var(--c-text-secondary);
+            text-align: left;
+            word-break: break-all;
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;
+            transition: all var(--dur);
+            line-height: 1.5;
+        }
+
+        .history-item:hover { background: var(--c-surface-sunken); color: var(--c-text); }
+
+        .history-item-text { flex: 1; min-width: 0; }
+
+        .history-item-copy {
+            flex-shrink: 0; width: 24px; height: 24px;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--c-text-tertiary);
+            opacity: 0;
+            transition: all var(--dur);
+        }
+
+        .history-item:hover .history-item-copy { opacity: 1; }
+        .history-item-copy:hover { background: var(--c-border-light); color: var(--c-primary); }
+        .history-item-copy svg { width: 13px; height: 13px; }
+
+        .history-empty {
+            padding: 1rem 0.6rem;
+            font-size: 0.75rem;
+            color: var(--c-text-tertiary);
+            text-align: center;
+        }
+
+        .history-clear-btn {
+            font-size: 0.65rem; font-weight: 500;
+            color: var(--c-text-tertiary);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            transition: all var(--dur);
+        }
+
+        .history-clear-btn:hover { color: var(--c-error); background: var(--c-error-bg); }
+
+        /* ═══════════════════════════════════════
+           Mobile Sticky Bottom Bar
+           ═══════════════════════════════════════ */
+        .mobile-bar {
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            z-index: 100;
+            background: var(--c-surface-overlay);
+            backdrop-filter: blur(16px) saturate(1.5);
+            -webkit-backdrop-filter: blur(16px) saturate(1.5);
+            border-top: 1px solid var(--c-border-light);
+            padding: 0.65rem 1rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .mobile-bar-preview {
+            font-size: 0.78rem; font-weight: 500;
+            color: var(--c-text-secondary);
+            margin-bottom: 0.5rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            line-height: 1.4;
+        }
+
+        .mobile-bar-preview strong { color: var(--c-text); font-weight: 600; }
+
+        .mobile-copy-btn {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: var(--radius-md);
+            background: var(--c-primary);
+            color: white;
+            font-size: 0.85rem; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            transition: all var(--dur) var(--ease);
+            box-shadow: 0 2px 8px rgba(13,148,136,0.25);
+        }
+
+        .mobile-copy-btn:hover { background: var(--c-primary-light); }
+        .mobile-copy-btn:active { transform: scale(0.98); }
+        .mobile-copy-btn:disabled { background: var(--c-border); color: var(--c-text-tertiary); box-shadow: none; }
+        .mobile-copy-btn svg { width: 16px; height: 16px; }
+
+        /* ═══════════════════════════════════════
+           Toast
+           ═══════════════════════════════════════ */
         .toast {
-            position: fixed;
-            top: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%) translateY(-120%);
-            z-index: 9999;
-            max-width: 90vw;
+            position: fixed; top: 0.75rem; left: 50%;
+            transform: translateX(-50%) translateY(-120%) scale(0.95);
+            z-index: 9999; max-width: 420px; width: calc(100% - 2rem);
             pointer-events: none;
-            transition: transform var(--duration-slow) var(--ease-out), opacity var(--duration-slow) var(--ease-out);
+            transition: all var(--dur-slow) var(--ease);
             opacity: 0;
         }
 
         .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-            pointer-events: auto;
+            transform: translateX(-50%) translateY(0) scale(1);
+            opacity: 1; pointer-events: auto;
         }
 
-        .toast-body {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            padding: 0.7rem 1.25rem;
-            border-radius: var(--radius-lg);
-            font-size: 0.85rem;
-            font-weight: 500;
-            box-shadow: var(--shadow-xl);
-            position: relative;
-            overflow: hidden;
+        .toast-inner {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.65rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.82rem; font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            position: relative; overflow: hidden;
         }
 
-        .toast-body.success {
-            background: var(--c-slate-900);
-            color: white;
-            border: 1px solid var(--c-slate-700);
+        .toast-inner.success {
+            background: var(--c-surface); color: var(--c-text);
+            border: 1px solid var(--c-border);
         }
 
-        .toast-body.error {
-            background: #1c1012;
-            color: #fecaca;
-            border: 1px solid rgba(239, 68, 68, 0.3);
+        .toast-inner.error {
+            background: var(--c-error-bg); color: #991b1b;
+            border: 1px solid rgba(239,68,68,0.2);
         }
 
-        .toast-icon {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-        }
-
+        .toast-icon { width: 18px; height: 18px; flex-shrink: 0; }
         .toast-icon.success { color: var(--c-success); }
-        .toast-icon.error   { color: var(--c-error); }
+        .toast-icon.error { color: var(--c-error); }
 
-        .toast-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 2px;
-            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-            transition: width linear;
+        .toast-bar {
+            position: absolute; bottom: 0; left: 0;
+            height: 2px; border-radius: 0 0 var(--radius-md) var(--radius-md);
         }
 
-        .toast-progress.success { background: var(--c-primary-400); }
-        .toast-progress.error   { background: var(--c-error); }
+        .toast-bar.success { background: var(--c-primary); }
+        .toast-bar.error { background: var(--c-error); }
 
-        /* ══════════════════════════════════════════════
-           Footer
-           ══════════════════════════════════════════════ */
-        .app-footer {
-            text-align: center;
-            padding: var(--space-lg) var(--space-md);
-            font-size: 0.72rem;
-            color: var(--c-slate-400);
-            animation: fadeSlideDown 0.6s var(--ease-out) 0.6s both;
+        /* ═══════════════════════════════════════
+           Responsive
+           ═══════════════════════════════════════ */
+        @media (max-width: 799px) {
+            .col-preview { display: none; }
+            .mobile-bar { display: block; }
+            .app-layout { padding-bottom: 8.5rem; }
         }
 
-        .app-footer span {
-            opacity: 0.7;
+        @media (min-width: 800px) {
+            .mobile-bar { display: none; }
+            .col-preview { display: flex; }
         }
 
-        /* ══════════════════════════════════════════════
-           Animations
-           ══════════════════════════════════════════════ */
-        @keyframes fadeSlideDown {
-            from { opacity: 0; transform: translateY(-10px); }
+        /* ═══════════════════════════════════════
+           Entrance Animations
+           ═══════════════════════════════════════ */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Focus visible for keyboard navigation */
-        :focus-visible {
-            outline: 2px solid var(--c-primary-400);
-            outline-offset: 2px;
-        }
-
-        button:focus:not(:focus-visible),
-        input:focus:not(:focus-visible) {
-            outline: none;
-        }
-
-        /* ══════════════════════════════════════════════
-           Mobile-specific adjustments
-           ══════════════════════════════════════════════ */
-        @media (max-width: 639px) {
-            .step-content { padding-left: 0; margin-top: 0.35rem; }
-            .steps-container::before,
-            .step-progress-fill { display: none; }
-            .glass-card { padding: var(--space-md); }
-            .app-header { padding: var(--space-lg) var(--space-md) var(--space-md); }
-            .copy-btn { width: 100%; }
-        }
+        .anim-in { animation: fadeUp 0.45s var(--ease) both; }
+        .anim-in-1 { animation-delay: 0.05s; }
+        .anim-in-2 { animation-delay: 0.12s; }
+        .anim-in-3 { animation-delay: 0.19s; }
+        .anim-in-4 { animation-delay: 0.26s; }
     </style>
 </head>
 <body>
 
+    <!-- ═══ Header ═══ -->
     <header class="app-header">
-        <h1>醫事人員執業異動文字產生器</h1>
-        <p class="subtitle">快速產生執業登記異動申請文字</p>
+        <div class="header-brand">
+            <div class="header-logo">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                </svg>
+            </div>
+            <span class="header-title">醫事人員執業異動文字產生器</span>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="historyToggleBtn" onclick="toggleHistoryMobile()" aria-label="複製紀錄">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="12 8 12 12 14 14"/>
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                <span class="badge" id="historyBadge">0</span>
+            </button>
+            <button class="icon-btn" onclick="resetAll()" aria-label="清除重填">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/>
+                    <path d="M3 21v-5h5"/>
+                </svg>
+            </button>
+        </div>
     </header>
 
-    <main class="app-main">
-        <div class="glass-card">
-            <div class="steps-container">
-                <!-- Progress fill line -->
-                <div class="step-progress-fill" id="progressFill"></div>
+    <!-- ═══ Main Layout ═══ -->
+    <div class="app-layout">
 
-                <!-- Step 1: 姓名輸入 -->
-                <section class="step-section" aria-label="步驟一：輸入申請人姓名">
-                    <div class="step-header">
-                        <div class="step-badge inactive" id="badge1"><span>1</span></div>
-                        <span class="step-title">輸入申請人姓名</span>
-                    </div>
-                    <div class="step-content">
-                        <div class="name-input-row">
-                            <div class="input-wrapper">
-                                <input type="text" id="applicantName"
-                                    class="input-field"
-                                    placeholder="請輸入姓名（例如：陳小明）"
-                                    autocomplete="off"
-                                    aria-label="申請人姓名"
-                                    oninput="handleNameInput()">
-                                <div class="input-check" id="nameCheck">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <button type="button" class="reset-btn" onclick="resetAll()" aria-label="清除所有選擇並重新填寫">
-                                <svg class="reset-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                清除重填
-                            </button>
-                        </div>
-                    </div>
-                </section>
+        <!-- Left: Input Column -->
+        <div class="col-input">
 
-                <!-- Step 2: 選擇申請類別 -->
-                <section class="step-section" aria-label="步驟二：選擇申請類別">
-                    <div class="step-header">
-                        <div class="step-badge inactive" id="badge2"><span>2</span></div>
-                        <span class="step-title">選擇申請類別</span>
-                        <span class="step-hint">單選</span>
+            <!-- Card: Name -->
+            <div class="card anim-in anim-in-1" aria-label="輸入申請人姓名">
+                <div class="card-header">
+                    <div class="card-label">
+                        <span class="card-label-dot active" id="dot1"></span>
+                        <span class="card-label-text">申請人姓名</span>
                     </div>
-                    <div class="step-content">
-                        <div id="categoryContainer"></div>
+                </div>
+                <div class="card-body">
+                    <div class="name-field">
+                        <input type="text" id="applicantName" class="name-input"
+                            placeholder="輸入姓名，例如：陳小明"
+                            autocomplete="off"
+                            aria-label="申請人姓名"
+                            oninput="handleNameInput()"
+                            onfocus="showNameSuggestions()"
+                            onblur="delayHideSuggestions()">
+                        <button class="name-clear" id="nameClear" onclick="clearName()" aria-label="清除姓名">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                        <div class="name-suggestions" id="nameSuggestions"></div>
                     </div>
-                </section>
-
-                <!-- Step 3: 選擇申請項目 -->
-                <section class="step-section" aria-label="步驟三：選擇申請項目">
-                    <div class="step-header items-header-row">
-                        <div class="step-badge inactive" id="badge3"><span>3</span></div>
-                        <span class="step-title">選擇申請項目</span>
-                        <span class="step-hint">可複選</span>
-                        <span class="selected-count" id="selectedCount">0</span>
-                    </div>
-                    <div class="step-content">
-                        <div class="items-grid" id="itemGrid"></div>
-                    </div>
-                </section>
-
-                <!-- Step 4: 產生結果 -->
-                <section class="step-section" aria-label="步驟四：產生組合文字結果">
-                    <div class="step-header">
-                        <div class="step-badge inactive" id="badge4"><span>4</span></div>
-                        <span class="step-title">產生組合文字結果</span>
-                    </div>
-                    <div class="step-content">
-                        <div class="output-card">
-                            <div class="output-inner">
-                                <div class="output-text">
-                                    <p id="outputResult"></p>
-                                </div>
-                                <button class="copy-btn" onclick="copyGeneratedText()" aria-label="複製產生的文字">
-                                    <svg class="btn-icon" id="copyIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
-                                    </svg>
-                                    <span id="copyBtnText">一鍵複製文字</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                </div>
             </div>
-        </div>
-    </main>
 
-    <!-- Toast notification -->
-    <div class="toast" id="toastMessage" role="alert" aria-live="polite">
-        <div class="toast-body success" id="toastBody">
-            <svg class="toast-icon success" id="toastIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span id="toastContent">已複製！</span>
-            <div class="toast-progress success" id="toastProgress"></div>
+            <!-- Card: Category -->
+            <div class="card anim-in anim-in-2" aria-label="選擇申請類別">
+                <div class="card-header">
+                    <div class="card-label">
+                        <span class="card-label-dot" id="dot2"></span>
+                        <span class="card-label-text">申請類別</span>
+                    </div>
+                    <span class="card-badge">單選</span>
+                </div>
+                <div class="card-body">
+                    <div id="categoryContainer"></div>
+                </div>
+            </div>
+
+            <!-- Card: Items -->
+            <div class="card anim-in anim-in-3" aria-label="選擇申請項目">
+                <div class="card-header">
+                    <div class="card-label">
+                        <span class="card-label-dot" id="dot3"></span>
+                        <span class="card-label-text">申請項目</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.35rem;">
+                        <span class="card-badge">複選</span>
+                        <span class="item-count-badge" id="itemCountBadge">0</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="items-grid" id="itemGrid"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right: Preview & History (Desktop) -->
+        <div class="col-preview anim-in anim-in-4">
+
+            <!-- Preview -->
+            <div class="preview-card">
+                <div class="preview-header">
+                    <span class="preview-label">產生結果</span>
+                    <span class="preview-status incomplete" id="previewStatus">未完成</span>
+                </div>
+                <div class="preview-body">
+                    <div class="preview-result">
+                        <p class="preview-result-text placeholder" id="outputResult">請依序填寫左側欄位</p>
+                    </div>
+                    <button class="copy-btn primary" id="desktopCopyBtn" onclick="copyGeneratedText()">
+                        <svg id="copyIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                        </svg>
+                        <span id="copyBtnText">複製文字</span>
+                    </button>
+                    <div class="shortcut-hint">
+                        <span class="key-badge">Ctrl</span>
+                        <span>+</span>
+                        <span class="key-badge">Enter</span>
+                        <span>快速複製</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="history-card">
+                <div class="history-header" onclick="toggleHistory()">
+                    <span class="history-label">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><polyline points="12 8 12 12 14 14"/><circle cx="12" cy="12" r="10"/></svg>
+                        複製紀錄
+                    </span>
+                    <div style="display:flex;align-items:center;gap:0.35rem;">
+                        <button class="history-clear-btn" id="historyClearBtn" onclick="event.stopPropagation();clearHistory()" style="display:none;">清除</button>
+                        <svg class="history-toggle" id="historyChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                </div>
+                <div class="history-body" id="historyBody">
+                    <div class="history-list" id="historyList">
+                        <div class="history-empty">尚無複製紀錄</div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <footer class="app-footer">
-        <span>醫事人員執業異動文字產生器</span>
-    </footer>
+    <!-- ═══ Mobile Sticky Bar ═══ -->
+    <div class="mobile-bar">
+        <div class="mobile-bar-preview" id="mobilePreview">請填寫上方欄位</div>
+        <button class="mobile-copy-btn" id="mobileCopyBtn" onclick="copyGeneratedText()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+            <span id="mobileCopyText">複製文字</span>
+        </button>
+    </div>
+
+    <!-- ═══ Toast ═══ -->
+    <div class="toast" id="toastEl" role="alert" aria-live="polite">
+        <div class="toast-inner success" id="toastInner">
+            <svg class="toast-icon success" id="toastIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span id="toastContent"></span>
+            <div class="toast-bar success" id="toastBar" style="width:100%"></div>
+        </div>
+    </div>
 
     <script>
-        // ══════════════════════════════════════════════
-        // Data — 醫事人員類別清單
-        // ══════════════════════════════════════════════
-        const categories = [
-            { id: 'physician', label: '醫師', group: '醫師類' },
-            { id: 'tcm_physician', label: '中醫師', group: '醫師類' },
-            { id: 'dentist', label: '牙醫師', group: '醫師類' },
-            { id: 'nurse', label: '護理師(護士)', group: '護理與助產類' },
-            { id: 'midwife', label: '助產師(士)', group: '護理與助產類' },
-            { id: 'pharmacist', label: '藥師', group: '藥事類' },
-            { id: 'assistant_pharmacist', label: '藥劑生', group: '藥事類' },
-            { id: 'medical_technologist', label: '醫事檢驗師(生)', group: '醫事技術類' },
-            { id: 'medical_radiation', label: '醫事放射師(士)', group: '醫事技術類' },
-            { id: 'dental_technologist', label: '牙體技術師(生)', group: '醫事技術類' },
-            { id: 'optometrist', label: '驗光師(生)', group: '醫事技術類' },
-            { id: 'physical_therapist', label: '物理治療師(生)', group: '復健與治療類' },
-            { id: 'occupational_therapist', label: '職能治療師(生)', group: '復健與治療類' },
-            { id: 'speech_therapist', label: '語言治療師', group: '復健與治療類' },
-            { id: 'audiologist', label: '聽力師', group: '復健與治療類' },
-            { id: 'respiratory_therapist', label: '呼吸治療師', group: '復健與治療類' },
-            { id: 'clinical_psychologist', label: '臨床心理師', group: '心理類' },
-            { id: 'counseling_psychologist', label: '諮商心理師', group: '心理類' },
-            { id: 'nutritionist', label: '營養師', group: '藥事類' },
-            { id: 'other', label: '其他', group: '其他專業類' }
-        ];
+    // ═══════════════════════════════════════════════════
+    // DATA
+    // ═══════════════════════════════════════════════════
+    const categories = [
+        { id: 'physician', label: '醫師', group: '醫師類' },
+        { id: 'tcm_physician', label: '中醫師', group: '醫師類' },
+        { id: 'dentist', label: '牙醫師', group: '醫師類' },
+        { id: 'nurse', label: '護理師(護士)', group: '護理與助產類' },
+        { id: 'midwife', label: '助產師(士)', group: '護理與助產類' },
+        { id: 'pharmacist', label: '藥師', group: '藥事類' },
+        { id: 'assistant_pharmacist', label: '藥劑生', group: '藥事類' },
+        { id: 'medical_technologist', label: '醫事檢驗師(生)', group: '醫事技術類' },
+        { id: 'medical_radiation', label: '醫事放射師(士)', group: '醫事技術類' },
+        { id: 'dental_technologist', label: '牙體技術師(生)', group: '醫事技術類' },
+        { id: 'optometrist', label: '驗光師(生)', group: '醫事技術類' },
+        { id: 'physical_therapist', label: '物理治療師(生)', group: '復健與治療類' },
+        { id: 'occupational_therapist', label: '職能治療師(生)', group: '復健與治療類' },
+        { id: 'speech_therapist', label: '語言治療師', group: '復健與治療類' },
+        { id: 'audiologist', label: '聽力師', group: '復健與治療類' },
+        { id: 'respiratory_therapist', label: '呼吸治療師', group: '復健與治療類' },
+        { id: 'clinical_psychologist', label: '臨床心理師', group: '心理類' },
+        { id: 'counseling_psychologist', label: '諮商心理師', group: '心理類' },
+        { id: 'nutritionist', label: '營養師', group: '藥事類' },
+        { id: 'other', label: '其他', group: '其他專業類' }
+    ];
 
-        // 申請項目清單
-        const items = [
-            { id: 'register', label: '執業(現歇業)登記' },
-            { id: 'suspend', label: '停業登記' },
-            { id: 'resume', label: '復業(現停業)登記' },
-            { id: 'cessation', label: '歇業(離職)登記' },
-            { id: 'dept_change', label: '(科別)變更' },
-            { id: 'name_change', label: '(姓名)變更' },
-            { id: 'inst_change', label: '機構變更' },
-            { id: 'cat_change', label: '類別變更' },
-            { id: 'lost_reissue', label: '遺失補發' },
-            { id: 'damage_reissue', label: '損壞補發' },
-            { id: 'renew', label: '到期換發' }
-        ];
+    const items = [
+        { id: 'register', label: '執業(現歇業)登記' },
+        { id: 'suspend', label: '停業登記' },
+        { id: 'resume', label: '復業(現停業)登記' },
+        { id: 'cessation', label: '歇業(離職)登記' },
+        { id: 'dept_change', label: '(科別)變更' },
+        { id: 'name_change', label: '(姓名)變更' },
+        { id: 'inst_change', label: '機構變更' },
+        { id: 'cat_change', label: '類別變更' },
+        { id: 'lost_reissue', label: '遺失補發' },
+        { id: 'damage_reissue', label: '損壞補發' },
+        { id: 'renew', label: '到期換發' }
+    ];
 
-        // ══════════════════════════════════════════════
-        // State
-        // ══════════════════════════════════════════════
-        let selectedCategory = '';
-        let selectedItems = [];
-        let selectedGroupTab = '';
+    // ═══════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════
+    let selectedCategory = '';
+    let selectedItems = [];
+    let selectedGroupTab = '';
+    let copyHistory = [];
+    let recentNames = [];
+    let historyOpen = false;
 
-        // ══════════════════════════════════════════════
-        // Initialization
-        // ══════════════════════════════════════════════
-        window.onload = function() {
-            renderCategories();
-            renderItems();
-            updateGenerator();
-            updateStepBadges();
-        };
+    const STORAGE_KEYS = {
+        history: 'medgen_history',
+        names: 'medgen_names',
+    };
 
-        // ══════════════════════════════════════════════
-        // Step Progress
-        // ══════════════════════════════════════════════
-        function updateStepBadges() {
-            const name = document.getElementById('applicantName').value.trim();
-            const nameCheck = document.getElementById('nameCheck');
+    // ═══════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════
+    window.onload = function() {
+        loadStorage();
+        renderCategories();
+        renderItems();
+        updateGenerator();
+        updateDots();
+        renderHistory();
+        updateHistoryBadge();
+    };
 
-            // Step 1: Name
-            const b1 = document.getElementById('badge1');
-            if (name) {
-                b1.className = 'step-badge completed';
-                nameCheck.classList.add('visible');
-            } else {
-                b1.className = 'step-badge active';
-                nameCheck.classList.remove('visible');
-            }
-
-            // Step 2: Category
-            const b2 = document.getElementById('badge2');
-            if (selectedCategory) {
-                b2.className = 'step-badge completed';
-            } else if (name) {
-                b2.className = 'step-badge active';
-            } else {
-                b2.className = 'step-badge inactive';
-            }
-
-            // Step 3: Items
-            const b3 = document.getElementById('badge3');
-            if (selectedItems.length > 0) {
-                b3.className = 'step-badge completed';
-            } else if (selectedCategory) {
-                b3.className = 'step-badge active';
-            } else {
-                b3.className = 'step-badge inactive';
-            }
-
-            // Step 4: Result
-            const b4 = document.getElementById('badge4');
-            if (name && selectedCategory && selectedItems.length > 0) {
-                b4.className = 'step-badge active';
-            } else {
-                b4.className = 'step-badge inactive';
-            }
-
-            // Update selected count badge
-            const countEl = document.getElementById('selectedCount');
-            countEl.textContent = selectedItems.length;
-            if (selectedItems.length > 0) {
-                countEl.classList.add('visible');
-            } else {
-                countEl.classList.remove('visible');
-            }
-
-            // Update progress fill line
-            updateProgressFill(name);
+    // Keyboard shortcut: Ctrl+Enter to copy
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            copyGeneratedText();
         }
+    });
 
-        function updateProgressFill(name) {
-            const fill = document.getElementById('progressFill');
-            if (!fill) return;
+    // ═══════════════════════════════════════════════════
+    // LOCAL STORAGE
+    // ═══════════════════════════════════════════════════
+    function loadStorage() {
+        try {
+            const h = localStorage.getItem(STORAGE_KEYS.history);
+            if (h) copyHistory = JSON.parse(h);
+            const n = localStorage.getItem(STORAGE_KEYS.names);
+            if (n) recentNames = JSON.parse(n);
+        } catch(e) { /* ignore */ }
+    }
 
-            let progress = 0;
-            if (name) progress = 1;
-            if (selectedCategory) progress = 2;
-            if (selectedItems.length > 0) progress = 3;
+    function saveHistory() {
+        try { localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(copyHistory.slice(0, 20))); } catch(e) {}
+    }
 
-            // Map progress to percentage of the rail height
-            const percentages = [0, 25, 55, 90];
-            fill.style.height = percentages[progress] + '%';
-        }
+    function saveNames() {
+        try { localStorage.setItem(STORAGE_KEYS.names, JSON.stringify(recentNames.slice(0, 8))); } catch(e) {}
+    }
 
-        // ══════════════════════════════════════════════
-        // Render Categories
-        // ══════════════════════════════════════════════
-        function renderCategories() {
-            const container = document.getElementById('categoryContainer');
-            container.innerHTML = '';
+    function addToHistory(text) {
+        // Remove duplicate if exists
+        copyHistory = copyHistory.filter(h => h.text !== text);
+        copyHistory.unshift({ text, time: Date.now() });
+        if (copyHistory.length > 20) copyHistory.length = 20;
+        saveHistory();
+        renderHistory();
+        updateHistoryBadge();
+    }
 
-            // Group by 'group' attribute, preserving order
-            const groupOrder = [];
-            const groups = {};
-            categories.forEach(cat => {
-                if (!groups[cat.group]) {
-                    groups[cat.group] = [];
-                    groupOrder.push(cat.group);
-                }
-                groups[cat.group].push(cat);
-            });
+    function rememberName(name) {
+        if (!name) return;
+        recentNames = recentNames.filter(n => n !== name);
+        recentNames.unshift(name);
+        if (recentNames.length > 8) recentNames.length = 8;
+        saveNames();
+    }
 
-            // Default tab
-            if (!selectedGroupTab) {
-                if (selectedCategory) {
-                    const selectedCat = categories.find(c => c.id === selectedCategory);
-                    if (selectedCat) selectedGroupTab = selectedCat.group;
-                }
-                if (!selectedGroupTab) {
-                    selectedGroupTab = '全部';
-                }
-            }
+    // ═══════════════════════════════════════════════════
+    // STATUS DOTS
+    // ═══════════════════════════════════════════════════
+    function updateDots() {
+        const name = document.getElementById('applicantName').value.trim();
+        const d1 = document.getElementById('dot1');
+        const d2 = document.getElementById('dot2');
+        const d3 = document.getElementById('dot3');
+        const nameClear = document.getElementById('nameClear');
+        const statusEl = document.getElementById('previewStatus');
+        const countBadge = document.getElementById('itemCountBadge');
 
-            // Build tab row
-            const tabRow = document.createElement('div');
-            tabRow.className = 'category-tabs';
+        // Dot 1
+        d1.className = 'card-label-dot ' + (name ? 'completed' : 'active');
+        nameClear.classList.toggle('visible', !!name);
 
-            // "All" tab
-            const allTab = document.createElement('button');
-            allTab.type = 'button';
-            allTab.className = `category-tab${selectedGroupTab === '全部' ? ' active' : ''}`;
-            allTab.textContent = '全部';
-            allTab.setAttribute('aria-label', '顯示全部類別');
-            allTab.onclick = () => {
-                selectedGroupTab = '全部';
-                renderCategories();
+        // Dot 2
+        d2.className = 'card-label-dot ' + (selectedCategory ? 'completed' : (name ? 'active' : ''));
+
+        // Dot 3
+        d3.className = 'card-label-dot ' + (selectedItems.length > 0 ? 'completed' : (selectedCategory ? 'active' : ''));
+
+        // Item count
+        countBadge.textContent = selectedItems.length;
+        countBadge.classList.toggle('visible', selectedItems.length > 0);
+
+        // Preview status
+        const isReady = name && selectedCategory && selectedItems.length > 0;
+        statusEl.className = 'preview-status ' + (isReady ? 'ready' : 'incomplete');
+        statusEl.textContent = isReady ? '可複製' : '未完成';
+
+        // Copy button state
+        const desktopBtn = document.getElementById('desktopCopyBtn');
+        const mobileBtn = document.getElementById('mobileCopyBtn');
+        if (desktopBtn) desktopBtn.disabled = !isReady;
+        if (mobileBtn) mobileBtn.disabled = !isReady;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // NAME INPUT
+    // ═══════════════════════════════════════════════════
+    function handleNameInput() {
+        updateGenerator();
+        updateDots();
+    }
+
+    function clearName() {
+        document.getElementById('applicantName').value = '';
+        document.getElementById('applicantName').focus();
+        handleNameInput();
+    }
+
+    // Name suggestions
+    function showNameSuggestions() {
+        const box = document.getElementById('nameSuggestions');
+        if (recentNames.length === 0) { box.classList.remove('open'); return; }
+        const current = document.getElementById('applicantName').value.trim();
+        // Filter to matching names (or show all if empty)
+        const filtered = current
+            ? recentNames.filter(n => n.includes(current) && n !== current)
+            : recentNames;
+        if (filtered.length === 0) { box.classList.remove('open'); return; }
+
+        box.innerHTML = '';
+        filtered.forEach(name => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'name-suggestion-item';
+            item.innerHTML = `<span>${name}</span><span class="hint">最近使用</span>`;
+            item.onmousedown = (e) => {
+                e.preventDefault(); // prevent blur
+                document.getElementById('applicantName').value = name;
+                box.classList.remove('open');
+                handleNameInput();
             };
-            tabRow.appendChild(allTab);
+            box.appendChild(item);
+        });
+        box.classList.add('open');
+    }
 
-            groupOrder.forEach(groupName => {
-                const tab = document.createElement('button');
-                tab.type = 'button';
-                tab.className = `category-tab${selectedGroupTab === groupName ? ' active' : ''}`;
-                tab.textContent = groupName;
-                tab.setAttribute('aria-label', `顯示${groupName}類別`);
-                tab.onclick = () => {
-                    selectedGroupTab = groupName;
-                    renderCategories();
-                };
-                tabRow.appendChild(tab);
-            });
-            container.appendChild(tabRow);
+    let suggestHideTimer;
+    function delayHideSuggestions() {
+        suggestHideTimer = setTimeout(() => {
+            document.getElementById('nameSuggestions').classList.remove('open');
+        }, 150);
+    }
 
-            // Build panel
-            const panel = document.createElement('div');
-            panel.className = 'category-panel';
+    // ═══════════════════════════════════════════════════
+    // CATEGORIES
+    // ═══════════════════════════════════════════════════
+    function renderCategories() {
+        const container = document.getElementById('categoryContainer');
+        container.innerHTML = '';
 
-            const grid = document.createElement('div');
-            grid.className = 'category-grid';
-
-            const displayCategories = selectedGroupTab === '全部' ? categories : (groups[selectedGroupTab] || []);
-
-            displayCategories.forEach(cat => {
-                const isSelected = selectedCategory === cat.id;
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = `cat-btn${isSelected ? ' selected' : ''}`;
-                btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-                btn.setAttribute('aria-label', `選擇類別：${cat.label}`);
-                btn.onclick = () => {
-                    selectedCategory = cat.id;
-                    selectedItems = [];
-                    renderCategories();
-                    renderItems();
-                    updateGenerator();
-                    updateStepBadges();
-                };
-                btn.innerText = cat.label;
-                grid.appendChild(btn);
-            });
-
-            panel.appendChild(grid);
-            container.appendChild(panel);
-        }
-
-        // ══════════════════════════════════════════════
-        // Render Items
-        // ══════════════════════════════════════════════
-        function renderItems() {
-            const grid = document.getElementById('itemGrid');
-            grid.innerHTML = '';
-
-            items.forEach(item => {
-                const isSelected = selectedItems.includes(item.id);
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = `item-chip${isSelected ? ' selected' : ''}`;
-                btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-                btn.setAttribute('aria-label', `${isSelected ? '取消選擇' : '選擇'}申請項目：${item.label}`);
-                btn.onclick = () => {
-                    toggleItemSelection(item.id);
-                };
-
-                if (isSelected) {
-                    btn.innerHTML = `
-                        <span class="chip-check">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </span>
-                        <span>${item.label}</span>
-                    `;
-                } else {
-                    btn.innerText = item.label;
-                }
-
-                grid.appendChild(btn);
-            });
-        }
-
-        // ══════════════════════════════════════════════
-        // Selection Logic
-        // ══════════════════════════════════════════════
-        function toggleItemSelection(id) {
-            const index = selectedItems.indexOf(id);
-            if (index > -1) {
-                selectedItems.splice(index, 1);
-            } else {
-                selectedItems.push(id);
-            }
-            renderItems();
-            updateGenerator();
-            updateStepBadges();
-        }
-
-        function handleNameInput() {
-            updateGenerator();
-            updateStepBadges();
-        }
-
-        function resetAll() {
-            document.getElementById('applicantName').value = '';
-            selectedCategory = '';
-            selectedItems = [];
-            selectedGroupTab = '';
-            renderCategories();
-            renderItems();
-            updateGenerator();
-            updateStepBadges();
-            document.getElementById('applicantName').focus();
-        }
-
-        // ══════════════════════════════════════════════
-        // Text Generation
-        // ══════════════════════════════════════════════
-        function cleanParentheses(text) {
-            if (!text) return '';
-
-            // 針對特殊項目，將括號轉化為適合閱讀的格式（不直接刪除）
-            if (text.includes('(科別)') || text.includes('（科別）')) {
-                return '科別變更';
-            }
-            if (text.includes('(姓名)') || text.includes('（姓名）')) {
-                return '姓名變更';
-            }
-
-            // 其他一般項目，移除括號及裡面的所有補充文字
-            return text.replace(/[\(（].*?[\)）]/g, '');
-        }
-
-        function updateGenerator() {
-            const rawName = document.getElementById('applicantName').value.trim();
-            const displayName = rawName || '（請輸入姓名）';
-
-            // 處理類別
-            const categoryObj = categories.find(c => c.id === selectedCategory);
-            const cleanedCategory = categoryObj ? cleanParentheses(categoryObj.label) : '（請選擇類別）';
-
-            // 處理複選項目並用「、」連接
-            const cleanedItemsArray = selectedItems.map(itemId => {
-                const itemObj = items.find(i => i.id === itemId);
-                return itemObj ? cleanParentheses(itemObj.label) : '';
-            }).filter(Boolean);
-
-            const itemsText = cleanedItemsArray.length > 0 ? cleanedItemsArray.join('、') : '（請選擇項目）';
-
-            // 產生格式： [姓名] 申辦 [申請類別] [申請項目1、項目2]
-            const generatedString = `${displayName}申辦${cleanedCategory}${itemsText}`;
-            document.getElementById('outputResult').innerText = generatedString;
-        }
-
-        // ══════════════════════════════════════════════
-        // Copy to Clipboard
-        // ══════════════════════════════════════════════
-        function copyGeneratedText() {
-            const rawName = document.getElementById('applicantName').value.trim();
-            if (!rawName) {
-                showToast('請先輸入上方申請人姓名', 'error');
-                return;
-            }
-            if (!selectedCategory) {
-                showToast('請先選擇申請類別', 'error');
-                return;
-            }
-            if (selectedItems.length === 0) {
-                showToast('請至少選擇一個申請項目', 'error');
-                return;
-            }
-
-            const textToCopy = document.getElementById('outputResult').innerText;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                showToast('已複製：' + textToCopy, 'success');
-                morphCopyButton();
-            }).catch(() => {
-                showToast('複製失敗，請手動選取複製', 'error');
-            });
-        }
-
-        // Morph copy button icon to checkmark briefly
-        function morphCopyButton() {
-            const icon = document.getElementById('copyIcon');
-            const text = document.getElementById('copyBtnText');
-            const originalIcon = icon.innerHTML;
-            const originalText = text.textContent;
-
-            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>';
-            text.textContent = '已複製！';
-
-            setTimeout(() => {
-                icon.innerHTML = originalIcon;
-                text.textContent = originalText;
-            }, 1800);
-        }
-
-        // Ripple effect on copy button
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest('.copy-btn');
-            if (!btn) return;
-
-            const ripple = document.createElement('span');
-            ripple.className = 'ripple';
-            const rect = btn.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
-            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
-            btn.appendChild(ripple);
-            ripple.addEventListener('animationend', () => ripple.remove());
+        const groupOrder = [];
+        const groups = {};
+        categories.forEach(cat => {
+            if (!groups[cat.group]) { groups[cat.group] = []; groupOrder.push(cat.group); }
+            groups[cat.group].push(cat);
         });
 
-        // ══════════════════════════════════════════════
-        // Toast Notifications
-        // ══════════════════════════════════════════════
-        let toastTimeout = null;
-        let toastProgressTimeout = null;
-        const TOAST_DURATION = 2800;
-
-        function showToast(message, type) {
-            const toast = document.getElementById('toastMessage');
-            const body = document.getElementById('toastBody');
-            const content = document.getElementById('toastContent');
-            const icon = document.getElementById('toastIcon');
-            const progress = document.getElementById('toastProgress');
-
-            // Set type styling
-            const isError = type === 'error';
-            body.className = `toast-body ${isError ? 'error' : 'success'}`;
-            icon.className = `toast-icon ${isError ? 'error' : 'success'}`;
-            progress.className = `toast-progress ${isError ? 'error' : 'success'}`;
-
-            // Set icon
-            if (isError) {
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>';
-            } else {
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>';
+        if (!selectedGroupTab) {
+            if (selectedCategory) {
+                const sc = categories.find(c => c.id === selectedCategory);
+                if (sc) selectedGroupTab = sc.group;
             }
-
-            content.textContent = message;
-
-            // Clear previous timers
-            if (toastTimeout) clearTimeout(toastTimeout);
-            if (toastProgressTimeout) clearTimeout(toastProgressTimeout);
-
-            // Reset progress bar
-            progress.style.transition = 'none';
-            progress.style.width = '100%';
-
-            // Show toast
-            toast.classList.add('show');
-
-            // Animate progress bar
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    progress.style.transition = `width ${TOAST_DURATION}ms linear`;
-                    progress.style.width = '0%';
-                });
-            });
-
-            // Hide after duration
-            toastTimeout = setTimeout(() => {
-                toast.classList.remove('show');
-            }, TOAST_DURATION);
+            if (!selectedGroupTab) selectedGroupTab = '全部';
         }
+
+        // Tabs
+        const tabRow = document.createElement('div');
+        tabRow.className = 'tabs-scroll';
+
+        const allTab = document.createElement('button');
+        allTab.type = 'button';
+        allTab.className = 'tab-pill' + (selectedGroupTab === '全部' ? ' active' : '');
+        allTab.textContent = '全部';
+        allTab.onclick = () => { selectedGroupTab = '全部'; renderCategories(); };
+        tabRow.appendChild(allTab);
+
+        groupOrder.forEach(g => {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'tab-pill' + (selectedGroupTab === g ? ' active' : '');
+            tab.textContent = g;
+            tab.onclick = () => { selectedGroupTab = g; renderCategories(); };
+            tabRow.appendChild(tab);
+        });
+        container.appendChild(tabRow);
+
+        // Grid
+        const grid = document.createElement('div');
+        grid.className = 'cat-grid';
+        const displayCats = selectedGroupTab === '全部' ? categories : (groups[selectedGroupTab] || []);
+        displayCats.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cat-btn' + (selectedCategory === cat.id ? ' selected' : '');
+            btn.setAttribute('aria-pressed', selectedCategory === cat.id ? 'true' : 'false');
+            btn.innerText = cat.label;
+            btn.onclick = () => {
+                selectedCategory = cat.id;
+                selectedItems = [];
+                renderCategories();
+                renderItems();
+                updateGenerator();
+                updateDots();
+            };
+            grid.appendChild(btn);
+        });
+        container.appendChild(grid);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ITEMS
+    // ═══════════════════════════════════════════════════
+    function renderItems() {
+        const grid = document.getElementById('itemGrid');
+        grid.innerHTML = '';
+        items.forEach(item => {
+            const sel = selectedItems.includes(item.id);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'item-chip' + (sel ? ' selected' : '');
+            btn.setAttribute('aria-pressed', sel ? 'true' : 'false');
+            btn.onclick = () => toggleItemSelection(item.id);
+
+            const checkSpan = document.createElement('span');
+            checkSpan.className = 'check-dot';
+            checkSpan.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+            btn.appendChild(checkSpan);
+
+            const label = document.createElement('span');
+            label.textContent = item.label;
+            btn.appendChild(label);
+
+            grid.appendChild(btn);
+        });
+    }
+
+    function toggleItemSelection(id) {
+        const idx = selectedItems.indexOf(id);
+        if (idx > -1) selectedItems.splice(idx, 1);
+        else selectedItems.push(id);
+        renderItems();
+        updateGenerator();
+        updateDots();
+    }
+
+    // ═══════════════════════════════════════════════════
+    // TEXT GENERATION
+    // ═══════════════════════════════════════════════════
+    function cleanParentheses(text) {
+        if (!text) return '';
+        if (text.includes('(科別)') || text.includes('（科別）')) return '科別變更';
+        if (text.includes('(姓名)') || text.includes('（姓名）')) return '姓名變更';
+        return text.replace(/[\(（].*?[\)）]/g, '');
+    }
+
+    function updateGenerator() {
+        const rawName = document.getElementById('applicantName').value.trim();
+        const displayName = rawName || '（請輸入姓名）';
+        const categoryObj = categories.find(c => c.id === selectedCategory);
+        const cleanedCategory = categoryObj ? cleanParentheses(categoryObj.label) : '（請選擇類別）';
+        const cleanedItemsArray = selectedItems.map(id => {
+            const obj = items.find(i => i.id === id);
+            return obj ? cleanParentheses(obj.label) : '';
+        }).filter(Boolean);
+        const itemsText = cleanedItemsArray.length > 0 ? cleanedItemsArray.join('、') : '（請選擇項目）';
+        const result = `${displayName}申辦${cleanedCategory}${itemsText}`;
+
+        // Desktop preview
+        const el = document.getElementById('outputResult');
+        const isComplete = rawName && selectedCategory && selectedItems.length > 0;
+        el.textContent = isComplete ? result : (rawName || selectedCategory || selectedItems.length > 0 ? result : '請依序填寫左側欄位');
+        el.className = 'preview-result-text' + (isComplete ? '' : ' placeholder');
+
+        // Mobile preview
+        const mob = document.getElementById('mobilePreview');
+        if (isComplete) {
+            mob.innerHTML = `<strong>${result}</strong>`;
+        } else {
+            mob.textContent = rawName || selectedCategory || selectedItems.length > 0 ? result : '請填寫上方欄位';
+        }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // COPY
+    // ═══════════════════════════════════════════════════
+    function copyGeneratedText() {
+        const rawName = document.getElementById('applicantName').value.trim();
+        if (!rawName) { showToast('請先輸入申請人姓名', 'error'); return; }
+        if (!selectedCategory) { showToast('請先選擇申請類別', 'error'); return; }
+        if (selectedItems.length === 0) { showToast('請至少選擇一個申請項目', 'error'); return; }
+
+        const text = document.getElementById('outputResult').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('已複製：' + text, 'success');
+            addToHistory(text);
+            rememberName(rawName);
+            morphCopyBtn();
+        }).catch(() => {
+            showToast('複製失敗，請手動選取複製', 'error');
+        });
+    }
+
+    function morphCopyBtn() {
+        const icons = [document.getElementById('copyIcon')];
+        const texts = [document.getElementById('copyBtnText'), document.getElementById('mobileCopyText')];
+        const origIcon = icons[0].innerHTML;
+
+        icons.forEach(ic => {
+            ic.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>';
+        });
+        texts.forEach(t => { if (t) t.textContent = '已複製！'; });
+
+        setTimeout(() => {
+            icons.forEach(ic => { ic.innerHTML = origIcon; });
+            texts[0].textContent = '複製文字';
+            if (texts[1]) texts[1].textContent = '複製文字';
+        }, 1600);
+    }
+
+    // Ripple effect
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.copy-btn, .mobile-copy-btn');
+        if (!btn || btn.disabled) return;
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        btn.style.position = 'relative';
+        btn.style.overflow = 'hidden';
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove());
+    });
+
+    // ═══════════════════════════════════════════════════
+    // RESET
+    // ═══════════════════════════════════════════════════
+    function resetAll() {
+        document.getElementById('applicantName').value = '';
+        selectedCategory = '';
+        selectedItems = [];
+        selectedGroupTab = '';
+        renderCategories();
+        renderItems();
+        updateGenerator();
+        updateDots();
+        document.getElementById('applicantName').focus();
+        showToast('已清除所有選擇', 'success');
+    }
+
+    // ═══════════════════════════════════════════════════
+    // HISTORY
+    // ═══════════════════════════════════════════════════
+    function toggleHistory() {
+        historyOpen = !historyOpen;
+        document.getElementById('historyBody').classList.toggle('open', historyOpen);
+        document.getElementById('historyChevron').classList.toggle('open', historyOpen);
+    }
+
+    function toggleHistoryMobile() {
+        // On mobile, scroll down to show history or toggle if desktop
+        toggleHistory();
+    }
+
+    function updateHistoryBadge() {
+        const badge = document.getElementById('historyBadge');
+        badge.textContent = copyHistory.length;
+        badge.classList.toggle('visible', copyHistory.length > 0);
+        const clearBtn = document.getElementById('historyClearBtn');
+        if (clearBtn) clearBtn.style.display = copyHistory.length > 0 ? '' : 'none';
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        if (copyHistory.length === 0) {
+            list.innerHTML = '<div class="history-empty">尚無複製紀錄</div>';
+            return;
+        }
+
+        list.innerHTML = '';
+        copyHistory.forEach((entry, idx) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'history-item';
+            item.onclick = () => copyHistoryItem(entry.text);
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'history-item-text';
+            textSpan.textContent = entry.text;
+            item.appendChild(textSpan);
+
+            const copyIcon = document.createElement('span');
+            copyIcon.className = 'history-item-copy';
+            copyIcon.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+            item.appendChild(copyIcon);
+
+            list.appendChild(item);
+        });
+    }
+
+    function copyHistoryItem(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('已複製：' + text, 'success');
+        }).catch(() => {
+            showToast('複製失敗', 'error');
+        });
+    }
+
+    function clearHistory() {
+        copyHistory = [];
+        saveHistory();
+        renderHistory();
+        updateHistoryBadge();
+        showToast('已清除複製紀錄', 'success');
+    }
+
+    // ═══════════════════════════════════════════════════
+    // TOAST
+    // ═══════════════════════════════════════════════════
+    let toastTimer = null;
+    const TOAST_MS = 2800;
+
+    function showToast(msg, type) {
+        const el = document.getElementById('toastEl');
+        const inner = document.getElementById('toastInner');
+        const icon = document.getElementById('toastIcon');
+        const content = document.getElementById('toastContent');
+        const bar = document.getElementById('toastBar');
+        const isErr = type === 'error';
+
+        inner.className = 'toast-inner ' + (isErr ? 'error' : 'success');
+        icon.className = 'toast-icon ' + (isErr ? 'error' : 'success');
+        bar.className = 'toast-bar ' + (isErr ? 'error' : 'success');
+        icon.innerHTML = isErr
+            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>'
+            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>';
+
+        content.textContent = msg;
+
+        if (toastTimer) clearTimeout(toastTimer);
+        bar.style.transition = 'none';
+        bar.style.width = '100%';
+        el.classList.add('show');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                bar.style.transition = `width ${TOAST_MS}ms linear`;
+                bar.style.width = '0%';
+            });
+        });
+        toastTimer = setTimeout(() => el.classList.remove('show'), TOAST_MS);
+    }
     </script>
 </body>
 </html>
