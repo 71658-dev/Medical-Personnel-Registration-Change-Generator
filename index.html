@@ -1,11 +1,26 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="醫事人員執業異動文字產生器 — 快速產生醫事人員執業登記、停業、復業、歇業等異動申請文字。">
+    <!-- Security: Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none';">
+    <!-- Security: Prevent MIME type sniffing -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <!-- Security: Control referrer information leakage -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>醫事人員執業異動文字產生器</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <!-- PWA: Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <!-- PWA: Theme color -->
+    <meta name="theme-color" content="#0d9488">
+    <!-- PWA: Apple 裝置支援 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="異動產生器">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="fonts.css">
     <style>
         /* ═══════════════════════════════════════
@@ -735,6 +750,32 @@
         .anim-in-2 { animation-delay: 0.12s; }
         .anim-in-3 { animation-delay: 0.19s; }
         .anim-in-4 { animation-delay: 0.26s; }
+
+        /* ═══════════════════════════════════════
+           PWA Install Button
+           ═══════════════════════════════════════ */
+        .install-btn {
+            display: none;
+            align-items: center; gap: 0.35rem;
+            padding: 0.35rem 0.7rem;
+            border-radius: var(--radius-full);
+            font-size: 0.72rem; font-weight: 600;
+            color: var(--c-primary);
+            background: var(--c-primary-bg);
+            border: 1.5px solid rgba(13,148,136,0.15);
+            transition: all var(--dur) var(--ease);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .install-btn:hover {
+            background: var(--c-primary-subtle);
+            border-color: var(--c-primary-lighter);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        .install-btn:active { transform: translateY(0) scale(0.96); }
+        .install-btn.visible { display: flex; }
+        .install-btn svg { width: 14px; height: 14px; }
     </style>
 </head>
 <body>
@@ -751,6 +792,15 @@
             <span class="header-title">醫事人員執業異動文字產生器</span>
         </div>
         <div class="header-actions">
+            <!-- PWA: Install button -->
+            <button class="install-btn" id="installBtn" onclick="handleInstallClick()" aria-label="安裝應用">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                安裝
+            </button>
             <button class="icon-btn" id="historyToggleBtn" onclick="toggleHistoryMobile()" aria-label="複製紀錄">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="12 8 12 12 14 14"/>
@@ -788,6 +838,7 @@
                         <input type="text" id="applicantName" class="name-input"
                             placeholder="輸入姓名，例如：陳小明"
                             autocomplete="off"
+                            maxlength="50"
                             aria-label="申請人姓名"
                             oninput="handleNameInput()"
                             onfocus="showNameSuggestions()"
@@ -989,13 +1040,34 @@
     // ═══════════════════════════════════════════════════
     // LOCAL STORAGE
     // ═══════════════════════════════════════════════════
+    // Security fix: validate data structure from localStorage to prevent injection
     function loadStorage() {
         try {
             const h = localStorage.getItem(STORAGE_KEYS.history);
-            if (h) copyHistory = JSON.parse(h);
+            if (h) {
+                const parsed = JSON.parse(h);
+                if (Array.isArray(parsed)) {
+                    copyHistory = parsed.filter(item =>
+                        item && typeof item === 'object'
+                        && typeof item.text === 'string' && item.text.length <= 500
+                        && typeof item.time === 'number'
+                    ).slice(0, 20);
+                }
+            }
             const n = localStorage.getItem(STORAGE_KEYS.names);
-            if (n) recentNames = JSON.parse(n);
-        } catch(e) { /* ignore */ }
+            if (n) {
+                const parsed = JSON.parse(n);
+                if (Array.isArray(parsed)) {
+                    recentNames = parsed.filter(name =>
+                        typeof name === 'string' && name.length <= 50
+                    ).slice(0, 8);
+                }
+            }
+        } catch(e) {
+            // Security: corrupted data, clear and ignore
+            try { localStorage.removeItem(STORAGE_KEYS.history); } catch(_) {}
+            try { localStorage.removeItem(STORAGE_KEYS.names); } catch(_) {}
+        }
     }
 
     function saveHistory() {
@@ -1092,7 +1164,14 @@
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'name-suggestion-item';
-            item.innerHTML = `<span>${name}</span><span class="hint">最近使用</span>`;
+            // Security fix: use DOM API instead of innerHTML to prevent XSS from localStorage data
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = name;
+            const hintSpan = document.createElement('span');
+            hintSpan.className = 'hint';
+            hintSpan.textContent = '最近使用';
+            item.appendChild(nameSpan);
+            item.appendChild(hintSpan);
             item.onmousedown = (e) => {
                 e.preventDefault(); // prevent blur
                 document.getElementById('applicantName').value = name;
@@ -1244,7 +1323,11 @@
         // Mobile preview
         const mob = document.getElementById('mobilePreview');
         if (isComplete) {
-            mob.innerHTML = `<strong>${result}</strong>`;
+            // Security fix: use DOM API instead of innerHTML to prevent XSS from user input
+            mob.innerHTML = '';
+            const strong = document.createElement('strong');
+            strong.textContent = result;
+            mob.appendChild(strong);
         } else {
             mob.textContent = rawName || selectedCategory || selectedItems.length > 0 ? result : '請填寫上方欄位';
         }
@@ -1420,6 +1503,64 @@
             });
         });
         toastTimer = setTimeout(() => el.classList.remove('show'), TOAST_MS);
+    }
+    // ═══════════════════════════════════════════════════════
+    // PWA: SERVICE WORKER & INSTALL PROMPT
+    // ═══════════════════════════════════════════════════════
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => {
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showToast('新版本已就緒，重新整理即可更新', 'success');
+                            }
+                        });
+                    });
+                })
+                .catch(() => {
+                    // SW registration failed (e.g. not HTTPS)
+                });
+        });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const btn = document.getElementById('installBtn');
+        if (btn) btn.classList.add('visible');
+    });
+
+    function handleInstallClick() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(result => {
+            if (result.outcome === 'accepted') {
+                showToast('感謝安裝！現在可以從桌面開啟', 'success');
+            }
+            deferredPrompt = null;
+            const btn = document.getElementById('installBtn');
+            if (btn) btn.classList.remove('visible');
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        const btn = document.getElementById('installBtn');
+        if (btn) btn.classList.remove('visible');
+    });
+
+    // Hide install button if already in standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        const btn = document.getElementById('installBtn');
+        if (btn) btn.style.display = 'none';
     }
     </script>
 </body>
