@@ -1,0 +1,23 @@
+{
+  "name": "medical-personnel-registration-change-generator",
+  "version": "1.0.0",
+  "description": "醫事人員執業異動文字產生器 - 自動端到端測試套件",
+  "main": "index.html",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "serve": "node server.js"
+  },
+  "keywords": [
+    "pwa",
+    "testing",
+    "playwright",
+    "e2e"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.45.0"
+  }
+}
