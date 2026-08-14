@@ -17,15 +17,18 @@
     <link data-trunk rel="copy-file" href="favicon.ico" />
     <link data-trunk rel="copy-file" href="manifest.json" />
     <link data-trunk rel="copy-file" href="sw.js" />
+    <link data-trunk rel="copy-file" href="register-sw.js" />
     <link data-trunk rel="copy-dir" href="icons" />
-    <link data-trunk rel="css" href="fonts.css" />
+    <!-- fonts.css (base64 Inter) is intentionally not linked: the Modernist
+         design system's font stack is Archivo → system-ui, so the 2 MB Inter
+         payload would be dead weight. Re-add this link if Inter comes back. -->
     <link data-trunk rel="css" href="style.css" />
 
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <!-- PWA: Web App Manifest -->
     <link rel="manifest" href="manifest.json">
     <!-- PWA: Theme color -->
-    <meta name="theme-color" content="#0d9488">
+    <meta name="theme-color" content="#ec3013">
     <!-- PWA: Apple 裝置支援 -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -34,5 +37,7 @@
 </head>
 <body>
     <!-- Yew will inject the application here -->
+    <!-- PWA: 註冊 sw.js（離線快取）。同源檔案，符合 CSP 的 script-src 'self'。 -->
+    <script src="register-sw.js" defer></script>
 </body>
 </html>

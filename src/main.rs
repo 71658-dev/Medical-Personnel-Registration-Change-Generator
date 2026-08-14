@@ -56,6 +56,10 @@ const ITEMS: &[Item] = &[
     Item { id: "renew", label: "到期換發" },
 ];
 
+/// How long the three fields must sit unchanged before the text is copied
+/// automatically.
+const AUTO_COPY_DELAY_MS: u32 = 600;
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
 struct HistoryEntry {
     text: String,
@@ -139,6 +143,16 @@ fn get_generated_text(
     (text, is_complete)
 }
 
+// Auto-focus is desktop-only: on a phone it pops the virtual keyboard on load
+// and again after every copy, shoving the sticky `.mobile-bar` up the screen.
+// Queried as a media query rather than `inner_width` so it stays locked to the
+// same 800px breakpoint `style.css` collapses the two-column layout at.
+fn is_desktop_viewport() -> bool {
+    web_sys::window()
+        .and_then(|w| w.match_media("(min-width: 800px)").ok().flatten())
+        .map_or(false, |mql| mql.matches())
+}
+
 // Helper to copy text asynchronously using JS Clipboard API
 async fn copy_to_clipboard_async(text: String) -> Result<(), JsValue> {
     let window = web_sys::window().ok_or_else(|| JsValue::from_str("No window available"))?;
@@ -158,9 +172,11 @@ enum Msg {
     SelectCategory(String),
     ToggleItem(String),
     SelectTab(String),
-    CopyText(MouseEvent),
+    CopyText,
     CopySuccess(String),
     CopyError,
+    AutoCopy,
+    AutoCopySuccess(String),
     CopyFromHistory(String),
     ToggleHistory,
     ClearHistory,
@@ -186,9 +202,21 @@ struct App {
     toast: Option<ToastState>,
     name_suggestions_open: bool,
     copied_morph: bool,
+    name_ref: NodeRef,
+    // Set when something should hand focus back to the name input on the next
+    // render (see `rendered`); first render focuses unconditionally.
+    focus_name_pending: bool,
+    // Programmatic focus fires a `focus` event just like a click would; this
+    // swallows the resulting ShowSuggestions so the 最近使用 dropdown only
+    // opens when the user actually reaches for the field.
+    suppress_focus_suggestions: bool,
+    // What the clipboard currently holds, so an auto-copy never repeats itself
+    // and never fights a manual copy of the same text.
+    last_copied_text: String,
     toast_timeout: Option<Timeout>,
     morph_timeout: Option<Timeout>,
     suggestions_timeout: Option<Timeout>,
+    auto_copy_timeout: Option<Timeout>,
     deferred_prompt: Option<JsValue>,
     _keydown_listener: Option<Closure<dyn FnMut(KeyboardEvent)>>,
     _before_install_listener: Option<Closure<dyn FnMut(Event)>>,
@@ -220,8 +248,7 @@ impl Component for App {
         let keydown_closure = Closure::wrap(Box::new(move |event: KeyboardEvent| {
             if (event.ctrl_key() || event.meta_key()) && event.key() == "Enter" {
                 event.prevent_default();
-                // Pass dummy MouseEvent (or we can just copy)
-                link.send_message(Msg::CopyText(MouseEvent::new("click").unwrap()));
+                link.send_message(Msg::CopyText);
             }
         }) as Box<dyn FnMut(KeyboardEvent)>);
 
@@ -269,9 +296,14 @@ impl Component for App {
             toast: None,
             name_suggestions_open: false,
             copied_morph: false,
+            name_ref: NodeRef::default(),
+            focus_name_pending: false,
+            suppress_focus_suggestions: false,
+            last_copied_text: String::new(),
             toast_timeout: None,
             morph_timeout: None,
             suggestions_timeout: None,
+            auto_copy_timeout: None,
             deferred_prompt: None,
             _keydown_listener: Some(keydown_closure),
             _before_install_listener: Some(before_install_closure),
@@ -283,16 +315,18 @@ impl Component for App {
         match msg {
             Msg::UpdateName(name) => {
                 self.applicant_name = name;
+                self.schedule_auto_copy(ctx);
                 true
             }
             Msg::ClearName => {
                 self.applicant_name.clear();
-                // Refocus input can be done in render or JS, we just clear here
+                self.schedule_auto_copy(ctx);
                 true
             }
             Msg::SelectCategory(cat_id) => {
                 self.selected_category = Some(cat_id);
                 self.selected_items.clear();
+                self.schedule_auto_copy(ctx);
                 true
             }
             Msg::ToggleItem(item_id) => {
@@ -301,17 +335,17 @@ impl Component for App {
                 } else {
                     self.selected_items.push(item_id);
                 }
+                self.schedule_auto_copy(ctx);
                 true
             }
             Msg::SelectTab(tab) => {
                 self.selected_group_tab = tab;
                 true
             }
-            Msg::CopyText(e) => {
+            Msg::CopyText => {
                 // Perform checks
                 let name_trimmed = self.applicant_name.trim();
                 if name_trimmed.is_empty() {
-                    ctx.link().send_message(Msg::CopyError);
                     self.toast = Some(ToastState {
                         message: "請先輸入申請人姓名".to_string(),
                         is_error: true,
@@ -344,9 +378,6 @@ impl Component for App {
                     false,
                 );
 
-                // Add ripple effect inside copy button if MouseEvent occurred
-                self.handle_ripple_effect(e);
-
                 // Copy async
                 let text_clone = text.clone();
                 let link = ctx.link().clone();
@@ -359,6 +390,10 @@ impl Component for App {
                 false
             }
             Msg::CopySuccess(text) => {
+                // Keeps the debounced auto-copy from immediately repeating this
+                self.last_copied_text = text.clone();
+                self.auto_copy_timeout = None;
+
                 // Add to history list
                 self.copy_history.retain(|h| h.text != text);
                 let now = js_sys::Date::now() as u64;
@@ -384,6 +419,9 @@ impl Component for App {
                 });
                 self.schedule_toast_clear(ctx);
 
+                // Hand focus back so the next 申請人 can be typed straight away
+                self.focus_name_pending = true;
+
                 // Morph copy button
                 self.copied_morph = true;
                 let link = ctx.link().clone();
@@ -397,6 +435,43 @@ impl Component for App {
                 self.toast = Some(ToastState {
                     message: "複製失敗，請手動選取複製".to_string(),
                     is_error: true,
+                });
+                self.schedule_toast_clear(ctx);
+                true
+            }
+            Msg::AutoCopy => {
+                // Re-check: the debounce may have been armed before a later
+                // edit made the form incomplete again.
+                let (text, is_complete) = get_generated_text(
+                    &self.applicant_name,
+                    &self.selected_category,
+                    &self.selected_items,
+                    false,
+                );
+                if !is_complete || text == self.last_copied_text {
+                    return false;
+                }
+
+                let text_clone = text.clone();
+                let link = ctx.link().clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    // Failure stays silent on purpose. The user never asked for
+                    // this copy, so nagging them with an error toast (browsers
+                    // that require a user gesture reject it every time) would be
+                    // pure noise — the copy button still reports its own errors.
+                    if copy_to_clipboard_async(text_clone).await.is_ok() {
+                        link.send_message(Msg::AutoCopySuccess(text));
+                    }
+                });
+                false
+            }
+            Msg::AutoCopySuccess(text) => {
+                self.last_copied_text = text.clone();
+                // Deliberately not recorded in 複製紀錄 / 最近使用 — those stay
+                // reserved for copies the user pressed the button for.
+                self.toast = Some(ToastState {
+                    message: format!("已自動複製：{}", text),
+                    is_error: false,
                 });
                 self.schedule_toast_clear(ctx);
                 true
@@ -431,6 +506,7 @@ impl Component for App {
                 self.selected_category = None;
                 self.selected_items.clear();
                 self.selected_group_tab = "全部".to_string();
+                self.schedule_auto_copy(ctx);
                 self.toast = Some(ToastState {
                     message: "已清除所有選擇".to_string(),
                     is_error: false,
@@ -439,6 +515,10 @@ impl Component for App {
                 true
             }
             Msg::ShowSuggestions => {
+                if self.suppress_focus_suggestions {
+                    self.suppress_focus_suggestions = false;
+                    return false;
+                }
                 self.name_suggestions_open = true;
                 true
             }
@@ -454,10 +534,9 @@ impl Component for App {
                 self.name_suggestions_open = false;
                 if !name.is_empty() {
                     self.applicant_name = name;
-                    true
-                } else {
-                    true
+                    self.schedule_auto_copy(ctx);
                 }
+                true
             }
             Msg::HideToast => {
                 self.toast = None;
@@ -479,7 +558,7 @@ impl Component for App {
                         });
                     self.deferred_prompt = None;
                 }
-                false
+                true
             }
             Msg::InstallPromptAvailable(ev) => {
                 self.deferred_prompt = Some(ev);
@@ -497,8 +576,34 @@ impl Component for App {
         }
     }
 
+    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+        if !first_render && !self.focus_name_pending {
+            return;
+        }
+        self.focus_name_pending = false;
+
+        if !is_desktop_viewport() {
+            return;
+        }
+
+        if let Some(input) = self.name_ref.cast::<web_sys::HtmlInputElement>() {
+            // `focus()` on the already-focused element fires no event, so only
+            // arm the suppression when one is actually coming — otherwise the
+            // flag would go stale and eat the user's next real focus.
+            let node: &web_sys::Node = input.as_ref();
+            let already_focused = web_sys::window()
+                .and_then(|w| w.document())
+                .and_then(|d| d.active_element())
+                .map_or(false, |el| el.is_same_node(Some(node)));
+
+            if !already_focused {
+                self.suppress_focus_suggestions = true;
+                let _ = input.focus();
+            }
+        }
+    }
+
     fn view(&self, ctx: &Context<Self>) -> Html {
-        // Evaluate completion status
         let (combined_text, is_complete) = get_generated_text(
             &self.applicant_name,
             &self.selected_category,
@@ -509,44 +614,28 @@ impl Component for App {
         let has_any_input = !self.applicant_name.trim().is_empty()
             || self.selected_category.is_some()
             || !self.selected_items.is_empty();
+        let show_result = is_complete || has_any_input;
 
-        let desktop_preview_text = if is_complete || has_any_input {
-            &combined_text
-        } else {
-            "請依序填寫左側欄位"
-        };
+        let desktop_preview_text = if show_result { &combined_text } else { "請依序填寫左側欄位" };
+        let mobile_preview_text = if show_result { &combined_text } else { "請填寫上方欄位" };
 
-        let mobile_preview_text = if is_complete || has_any_input {
-            &combined_text
-        } else {
-            "請填寫上方欄位"
-        };
-
-        // Name status check
+        // Step completion tags replace the old progress dots
         let is_name_filled = !self.applicant_name.trim().is_empty();
-        let dot1_class = if is_name_filled { "card-label-dot completed" } else { "card-label-dot active" };
-
-        // Category status check
         let is_cat_selected = self.selected_category.is_some();
-        let dot2_class = if is_cat_selected {
-            "card-label-dot completed"
-        } else if is_name_filled {
-            "card-label-dot active"
-        } else {
-            "card-label-dot"
-        };
-
-        // Items status check
         let is_items_selected = !self.selected_items.is_empty();
-        let dot3_class = if is_items_selected {
-            "card-label-dot completed"
-        } else if is_cat_selected {
-            "card-label-dot active"
+
+        let name_tag_class = if is_name_filled { "tag tag-accent" } else { "tag tag-neutral" };
+        let name_tag_label = if is_name_filled { "已填寫" } else { "待填寫" };
+        let cat_tag_class = if is_cat_selected { "tag tag-accent" } else { "tag tag-neutral" };
+        let cat_tag_label = if is_cat_selected { "已選擇" } else { "待選擇" };
+        let items_tag_class = if is_items_selected { "tag tag-accent" } else { "tag tag-neutral" };
+        let items_tag_label = if is_items_selected {
+            format!("已選 {}", self.selected_items.len())
         } else {
-            "card-label-dot"
+            "待選擇".to_string()
         };
 
-        // Setup filter values for tab buttons
+        // Tab list is derived from the distinct `group` values in CATEGORIES
         let mut group_tabs = vec!["全部"];
         for cat in CATEGORIES {
             if !group_tabs.contains(&cat.group) {
@@ -554,18 +643,11 @@ impl Component for App {
             }
         }
 
-        // Filter categories according to selected tab
         let filtered_categories: Vec<&Category> = CATEGORIES
             .iter()
             .filter(|cat| self.selected_group_tab == "全部" || cat.group == self.selected_group_tab)
             .collect();
 
-        // Check if history is non-empty
-        let history_badge_class = if !self.copy_history.is_empty() { "badge visible" } else { "badge" };
-        let history_chevron_class = if self.history_open { "history-toggle open" } else { "history-toggle" };
-        let history_body_class = if self.history_open { "history-body open" } else { "history-body" };
-
-        // Render Suggestions List
         let current_input = self.applicant_name.trim();
         let filtered_suggestions: Vec<&String> = self.recent_names
             .iter()
@@ -577,47 +659,41 @@ impl Component for App {
                 }
             })
             .collect();
-
-        let suggestions_box_class = if self.name_suggestions_open && !filtered_suggestions.is_empty() {
-            "name-suggestions open"
-        } else {
-            "name-suggestions"
-        };
-
-        // PWA install button class
-        let install_btn_class = if self.deferred_prompt.is_some() { "install-btn visible" } else { "install-btn" };
+        let suggestions_visible = self.name_suggestions_open && !filtered_suggestions.is_empty();
 
         html! {
-            <>
-                // Header
-                <header class="app-header">
-                    <div class="header-brand">
-                        <div class="header-logo">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
-                                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                            </svg>
-                        </div>
-                        <span class="header-title">{"醫事人員執業異動文字產生器"}</span>
-                    </div>
-                    <div class="header-actions">
-                        <button class={install_btn_class} onclick={ctx.link().callback(|_| Msg::TriggerInstall)} aria-label="安裝應用">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                                <polyline points="7 10 12 15 17 10"/>
-                                <line x1="12" y1="15" x2="12" y2="3"/>
-                            </svg>
-                            {"安裝"}
-                        </button>
-                        <button class="icon-btn" onclick={ctx.link().callback(|_| Msg::ToggleHistory)} aria-label="複製紀錄">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="app-shell">
+                // ─── Header ───
+                <header class="nav">
+                    <span class="nav-brand">{"醫事人員執業異動文字產生器"}</span>
+                    <div class="nav-actions">
+                        {if self.deferred_prompt.is_some() {
+                            html! {
+                                <button class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::TriggerInstall)} aria-label="安裝應用">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    {"安裝"}
+                                </button>
+                            }
+                        } else {
+                            html! {}
+                        }}
+                        <button class="btn btn-icon btn-secondary history-btn" onclick={ctx.link().callback(|_| Msg::ToggleHistory)} aria-label="複製紀錄">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="12 8 12 12 14 14"/>
                                 <circle cx="12" cy="12" r="10"/>
                             </svg>
-                            <span id="historyBadge" class={history_badge_class}>{self.copy_history.len()}</span>
+                            {if !self.copy_history.is_empty() {
+                                html! { <span class="history-badge">{self.copy_history.len()}</span> }
+                            } else {
+                                html! {}
+                            }}
                         </button>
-                        <button class="icon-btn" onclick={ctx.link().callback(|_| Msg::ResetAll)} aria-label="清除重填">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <button class="btn btn-icon btn-secondary" onclick={ctx.link().callback(|_| Msg::ResetAll)} aria-label="清除重填">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/>
                                 <path d="M21 3v5h-5"/>
                                 <path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/>
@@ -627,207 +703,216 @@ impl Component for App {
                     </div>
                 </header>
 
-                // Layout
                 <div class="app-layout">
-                    // Left Input Column
+                    // ─── Input column ───
                     <div class="col-input">
-                        // Applicant Name Card
-                        <div class="card anim-in anim-in-1" aria-label="輸入申請人姓名">
-                            <div class="card-header">
-                                <div class="card-label">
-                                    <span id="dot1" class={dot1_class}></span>
-                                    <span class="card-label-text">{"申請人姓名"}</span>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="name-field">
-                                    <input
-                                        type="text"
-                                        id="applicantName"
-                                        class="name-input"
-                                        placeholder="輸入姓名，例如：陳小明"
-                                        autocomplete="off"
-                                        maxlength="50"
-                                        aria-label="申請人姓名"
-                                        value={self.applicant_name.clone()}
-                                        oninput={ctx.link().callback(|e: InputEvent| {
-                                            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                            Msg::UpdateName(input.value())
-                                        })}
-                                        onfocus={ctx.link().callback(|_| Msg::ShowSuggestions)}
-                                        onblur={ctx.link().callback(|_| Msg::HideSuggestions)}
-                                    />
-                                    <button
-                                        id="nameClear"
-                                        class={if is_name_filled { "name-clear visible" } else { "name-clear" }}
-                                        onclick={ctx.link().callback(|_| Msg::ClearName)}
-                                        aria-label="清除姓名"
-                                    >
-                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round">
-                                            <path d="M18 6L6 18M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                    <div class={suggestions_box_class}>
-                                        {for filtered_suggestions.into_iter().map(|name| {
-                                            let n_clone = name.clone();
-                                            html! {
-                                                <button
-                                                    type="button"
-                                                    class="name-suggestion-item"
-                                                    onmousedown={ctx.link().callback(move |_| Msg::SelectSuggestion(n_clone.clone()))}
-                                                >
-                                                    <span>{name}</span>
-                                                    <span class="hint">{"最近使用"}</span>
-                                                </button>
-                                            }
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        // Category Card
-                        <div class="card anim-in anim-in-2" aria-label="選擇申請類別">
-                            <div class="card-header">
-                                <div class="card-label">
-                                    <span id="dot2" class={dot2_class}></span>
-                                    <span class="card-label-text">{"申請類別"}</span>
+                        // STEP 01 — name
+                        <section class="card anim-in" aria-label="輸入申請人姓名">
+                            <div class="card-head">
+                                <div>
+                                    <div class="card-kicker">{"STEP 01"}</div>
+                                    <div class="card-title">{"申請人姓名"}</div>
                                 </div>
-                                <span class="card-badge">{"單選"}</span>
+                                <span class={name_tag_class}>{name_tag_label}</span>
                             </div>
-                            <div class="card-body">
-                                <div class="tabs-scroll">
-                                    {for group_tabs.into_iter().map(|tab| {
-                                        let tab_str = tab.to_string();
-                                        let active = self.selected_group_tab == tab_str;
-                                        html! {
-                                            <button
-                                                type="button"
-                                                class={if active { "tab-pill active" } else { "tab-pill" }}
-                                                onclick={ctx.link().callback(move |_| Msg::SelectTab(tab_str.clone()))}
-                                            >
-                                                {tab}
-                                            </button>
-                                        }
+                            <div class="hr hr-tight"></div>
+                            <div class="name-field">
+                                <input
+                                    type="text"
+                                    id="applicantName"
+                                    class="input name-input"
+                                    placeholder="輸入姓名，例如：陳小明"
+                                    autocomplete="off"
+                                    maxlength="50"
+                                    aria-label="申請人姓名"
+                                    ref={self.name_ref.clone()}
+                                    value={self.applicant_name.clone()}
+                                    oninput={ctx.link().callback(|e: InputEvent| {
+                                        let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                        Msg::UpdateName(input.value())
                                     })}
-                                </div>
-                                <div class="cat-grid">
-                                    {for filtered_categories.into_iter().map(|cat| {
-                                        let cat_id = cat.id.to_string();
-                                        let selected = self.selected_category.as_ref() == Some(&cat_id);
-                                        html! {
-                                            <button
-                                                type="button"
-                                                class={if selected { "cat-btn selected" } else { "cat-btn" }}
-                                                aria-pressed={if selected { "true" } else { "false" }}
-                                                onclick={ctx.link().callback(move |_| Msg::SelectCategory(cat_id.clone()))}
-                                            >
-                                                {cat.label}
-                                            </button>
-                                        }
-                                    })}
-                                </div>
+                                    onfocus={ctx.link().callback(|_| Msg::ShowSuggestions)}
+                                    onblur={ctx.link().callback(|_| Msg::HideSuggestions)}
+                                />
+                                {if is_name_filled {
+                                    html! {
+                                        <button class="name-clear" onclick={ctx.link().callback(|_| Msg::ClearName)} aria-label="清除姓名">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                                                <path d="M18 6L6 18M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    }
+                                } else {
+                                    html! {}
+                                }}
+                                {if suggestions_visible {
+                                    html! {
+                                        <div class="name-suggestions">
+                                            {for filtered_suggestions.into_iter().map(|name| {
+                                                let n_clone = name.clone();
+                                                html! {
+                                                    <button
+                                                        type="button"
+                                                        class="name-suggestion-item"
+                                                        onmousedown={ctx.link().callback(move |_| Msg::SelectSuggestion(n_clone.clone()))}
+                                                    >
+                                                        <span>{name}</span>
+                                                        <span class="name-suggestion-hint">{"最近使用"}</span>
+                                                    </button>
+                                                }
+                                            })}
+                                        </div>
+                                    }
+                                } else {
+                                    html! {}
+                                }}
                             </div>
-                        </div>
+                        </section>
 
-                        // Items Card
-                        <div class="card anim-in anim-in-3" aria-label="選擇申請項目">
-                            <div class="card-header">
-                                <div class="card-label">
-                                    <span id="dot3" class={dot3_class}></span>
-                                    <span class="card-label-text">{"申請項目"}</span>
+                        // STEP 02 — category
+                        <section class="card anim-in anim-in-2" aria-label="選擇申請類別">
+                            <div class="card-head">
+                                <div>
+                                    <div class="card-kicker">{"STEP 02"}</div>
+                                    <div class="card-title">{"申請類別"}</div>
                                 </div>
-                                <div style="display:flex;align-items:center;gap:0.35rem;">
-                                    <span class="card-badge">{"複選"}</span>
-                                    <span id="itemCountBadge" class={if is_items_selected { "item-count-badge visible" } else { "item-count-badge" }}>
-                                        {self.selected_items.len()}
-                                    </span>
+                                <div class="tag-group">
+                                    <span class="tag tag-outline tag-mode">{"單選"}</span>
+                                    <span class={cat_tag_class}>{cat_tag_label}</span>
                                 </div>
                             </div>
-                            <div class="card-body">
-                                <div class="items-grid">
-                                    {for ITEMS.iter().map(|item| {
-                                        let item_id = item.id.to_string();
-                                        let selected = self.selected_items.contains(&item_id);
-                                        html! {
-                                            <button
-                                                type="button"
-                                                class={if selected { "item-chip selected" } else { "item-chip" }}
-                                                aria-pressed={if selected { "true" } else { "false" }}
-                                                onclick={ctx.link().callback(move |_| Msg::ToggleItem(item_id.clone()))}
-                                            >
-                                                <span class="check-dot">
-                                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                                                    </svg>
-                                                </span>
-                                                <span>{item.label}</span>
-                                            </button>
-                                        }
-                                    })}
+                            <div class="hr hr-tight"></div>
+                            <div class="tabs-scroll">
+                                {for group_tabs.into_iter().map(|tab| {
+                                    let tab_str = tab.to_string();
+                                    let active = self.selected_group_tab == tab_str;
+                                    html! {
+                                        <button
+                                            type="button"
+                                            class={if active { "tab-btn active" } else { "tab-btn" }}
+                                            onclick={ctx.link().callback(move |_| Msg::SelectTab(tab_str.clone()))}
+                                        >
+                                            {tab}
+                                        </button>
+                                    }
+                                })}
+                            </div>
+                            <div class="cat-grid">
+                                {for filtered_categories.into_iter().map(|cat| {
+                                    let cat_id = cat.id.to_string();
+                                    let selected = self.selected_category.as_ref() == Some(&cat_id);
+                                    html! {
+                                        <button
+                                            type="button"
+                                            class={if selected { "btn opt-btn selected" } else { "btn opt-btn" }}
+                                            aria-pressed={if selected { "true" } else { "false" }}
+                                            onclick={ctx.link().callback(move |_| Msg::SelectCategory(cat_id.clone()))}
+                                        >
+                                            {cat.label}
+                                        </button>
+                                    }
+                                })}
+                            </div>
+                        </section>
+
+                        // STEP 03 — items
+                        <section class="card anim-in anim-in-3" aria-label="選擇申請項目">
+                            <div class="card-head">
+                                <div>
+                                    <div class="card-kicker">{"STEP 03"}</div>
+                                    <div class="card-title">{"申請項目"}</div>
+                                </div>
+                                <div class="tag-group">
+                                    <span class="tag tag-outline tag-mode">{"複選"}</span>
+                                    <span class={items_tag_class}>{items_tag_label}</span>
                                 </div>
                             </div>
-                        </div>
+                            <div class="hr hr-tight"></div>
+                            <div class="items-grid">
+                                {for ITEMS.iter().map(|item| {
+                                    let item_id = item.id.to_string();
+                                    let selected = self.selected_items.contains(&item_id);
+                                    html! {
+                                        <button
+                                            type="button"
+                                            class={if selected { "btn opt-btn item-btn selected" } else { "btn opt-btn item-btn" }}
+                                            aria-pressed={if selected { "true" } else { "false" }}
+                                            onclick={ctx.link().callback(move |_| Msg::ToggleItem(item_id.clone()))}
+                                        >
+                                            <span class="check-box">
+                                                {if selected {
+                                                    html! {
+                                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                    }
+                                                } else {
+                                                    html! {}
+                                                }}
+                                            </span>
+                                            {item.label}
+                                        </button>
+                                    }
+                                })}
+                            </div>
+                        </section>
                     </div>
 
-                    // Right column
+                    // ─── Preview column ───
                     <div class="col-preview anim-in anim-in-4">
-                        // Preview result
-                        <div class="preview-card">
-                            <div class="preview-header">
-                                <span class="preview-label">{"產生結果"}</span>
-                                <span id="previewStatus" class={if is_complete { "preview-status ready" } else { "preview-status incomplete" }}>
+
+                        <section class="card">
+                            <div class="preview-head">
+                                <div class="card-kicker">{"產生結果"}</div>
+                                <span class={if is_complete { "tag tag-accent" } else { "tag tag-neutral" }}>
                                     {if is_complete { "可複製" } else { "未完成" }}
                                 </span>
                             </div>
-                            <div class="preview-body">
-                                <div class="preview-result">
-                                    <p id="outputResult" class={if is_complete || has_any_input { "preview-result-text" } else { "preview-result-text placeholder" }}>
-                                        {desktop_preview_text}
-                                    </p>
-                                </div>
-                                <button
-                                    class="copy-btn primary"
-                                    id="desktopCopyBtn"
-                                    disabled={!is_complete}
-                                    onclick={ctx.link().callback(|e: MouseEvent| Msg::CopyText(e))}
-                                >
-                                    <svg id="copyIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        {if self.copied_morph {
-                                            html! { <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/> }
-                                        } else {
-                                            html! {
-                                                <>
-                                                    <rect x="9" y="9" width="13" height="13" rx="2"/>
-                                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                                </>
-                                            }
-                                        }}
-                                    </svg>
-                                    <span id="copyBtnText">
-                                        {if self.copied_morph { "已複製！" } else { "複製文字" }}
-                                    </span>
-                                </button>
-                                <div class="shortcut-hint">
-                                    <span class="key-badge">{"Ctrl"}</span>
-                                    <span>{"+"}</span>
-                                    <span class="key-badge">{"Enter"}</span>
-                                    <span>{"快速複製"}</span>
-                                </div>
+                            <div class="hr hr-tight"></div>
+                            <div class="preview-box">
+                                <p id="outputResult" class={if show_result { "preview-text" } else { "preview-text placeholder" }}>
+                                    {desktop_preview_text}
+                                </p>
                             </div>
-                        </div>
+                            <button
+                                class="btn btn-block btn-copy"
+                                id="desktopCopyBtn"
+                                disabled={!is_complete}
+                                onclick={ctx.link().callback(|_| Msg::CopyText)}
+                            >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    {if self.copied_morph {
+                                        html! { <path d="M5 13l4 4L19 7"/> }
+                                    } else {
+                                        html! {
+                                            <>
+                                                <rect x="9" y="9" width="13" height="13" rx="1"/>
+                                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                            </>
+                                        }
+                                    }}
+                                </svg>
+                                {if self.copied_morph { "已複製！" } else { "複製文字" }}
+                            </button>
+                            <div class="shortcut-hint">
+                                <span class="key-cap">{"Ctrl"}</span>
+                                <span>{"+"}</span>
+                                <span class="key-cap">{"Enter"}</span>
+                                <span>{"快速複製"}</span>
+                            </div>
+                        </section>
 
-                        // History
-                        <div class="history-card">
+                        <section class="card history-card">
                             <div class="history-header" onclick={ctx.link().callback(|_| Msg::ToggleHistory)}>
                                 <span class="history-label">
-                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <polyline points="12 8 12 12 14 14"/>
                                         <circle cx="12" cy="12" r="10"/>
                                     </svg>
                                     {"複製紀錄"}
                                 </span>
-                                <div style="display:flex;align-items:center;gap:0.35rem;">
+                                <div class="history-header-actions">
                                     {if !self.copy_history.is_empty() {
                                         html! {
                                             <button
@@ -844,137 +929,138 @@ impl Component for App {
                                     } else {
                                         html! {}
                                     }}
-                                    <svg id="historyChevron" class={history_chevron_class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <svg
+                                        width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        class={if self.history_open { "history-chevron open" } else { "history-chevron" }}
+                                    >
                                         <polyline points="6 9 12 15 18 9"/>
                                     </svg>
                                 </div>
                             </div>
-                            <div class={history_body_class} id="historyBody">
-                                <div class="history-list" id="historyList">
-                                    {if self.copy_history.is_empty() {
-                                        html! { <div class="history-empty">{"尚無複製紀錄"}</div> }
-                                    } else {
-                                        html! {
-                                            {for self.copy_history.iter().map(|entry| {
-                                                let txt = entry.text.clone();
+                            {if self.history_open {
+                                html! {
+                                    <>
+                                        <div class="hr" style="margin:0;"></div>
+                                        <div class="history-list" id="historyList">
+                                            {if self.copy_history.is_empty() {
+                                                html! { <div class="history-empty">{"尚無複製紀錄"}</div> }
+                                            } else {
                                                 html! {
-                                                    <button
-                                                        type="button"
-                                                        class="history-item"
-                                                        onclick={ctx.link().callback(move |_| Msg::CopyFromHistory(txt.clone()))}
-                                                    >
-                                                        <span class="history-item-text">{&entry.text}</span>
-                                                        <span class="history-item-copy">
-                                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round">
-                                                                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                                            </svg>
-                                                        </span>
-                                                    </button>
+                                                    {for self.copy_history.iter().map(|entry| {
+                                                        let txt = entry.text.clone();
+                                                        html! {
+                                                            <button
+                                                                type="button"
+                                                                class="history-item"
+                                                                onclick={ctx.link().callback(move |_| Msg::CopyFromHistory(txt.clone()))}
+                                                            >
+                                                                {&entry.text}
+                                                            </button>
+                                                        }
+                                                    })}
                                                 }
-                                            })}
-                                        }
-                                    }}
-                                </div>
-                            </div>
-                        </div>
+                                            }}
+                                        </div>
+                                    </>
+                                }
+                            } else {
+                                html! {}
+                            }}
+                        </section>
                     </div>
                 </div>
 
-                // Sticky Bottom Mobile Bar
+                // ─── Sticky mobile bar (shown below 800px) ───
                 <div class="mobile-bar">
-                    <div class="mobile-bar-preview" id="mobilePreview">
-                        {if is_complete {
-                            html! { <strong>{mobile_preview_text}</strong> }
+                    <div
+                        id="mobilePreview"
+                        class={if !show_result {
+                            "mobile-preview placeholder"
+                        } else if is_complete {
+                            "mobile-preview ready"
                         } else {
-                            html! { <>{mobile_preview_text}</> }
+                            "mobile-preview"
                         }}
+                    >
+                        {mobile_preview_text}
                     </div>
                     <button
-                        class="mobile-copy-btn"
+                        class="btn btn-copy mobile-copy-btn"
                         id="mobileCopyBtn"
                         disabled={!is_complete}
-                        onclick={ctx.link().callback(|e: MouseEvent| Msg::CopyText(e))}
+                        onclick={ctx.link().callback(|_| Msg::CopyText)}
                     >
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             {if self.copied_morph {
-                                html! { <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/> }
+                                html! { <path d="M5 13l4 4L19 7"/> }
                             } else {
                                 html! {
                                     <>
-                                        <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                        <rect x="9" y="9" width="13" height="13" rx="1"/>
                                         <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                                     </>
                                 }
                             }}
                         </svg>
-                        <span id="mobileCopyText">
-                            {if self.copied_morph { "已複製！" } else { "複製文字" }}
-                        </span>
+                        {if self.copied_morph { "已複製！" } else { "複製文字" }}
                     </button>
                 </div>
 
-                // Toast Notification
-                <div class={if self.toast.is_some() { "toast show" } else { "toast" }} id="toastEl" role="alert" aria-live="polite">
-                    {if let Some(ref t) = self.toast {
-                        let inner_class = if t.is_error { "toast-inner error" } else { "toast-inner success" };
-                        let icon_class = if t.is_error { "toast-icon error" } else { "toast-icon success" };
-                        let bar_class = if t.is_error { "toast-bar error animate" } else { "toast-bar success animate" };
-                        html! {
-                            <div class={inner_class} id="toastInner">
-                                <svg class={icon_class} id="toastIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                // ─── Toast ───
+                {if let Some(ref t) = self.toast {
+                    html! {
+                        <div class="toast-wrap" id="toastEl" role="alert" aria-live="polite">
+                            <div class="toast-inner">
+                                <svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-700)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                                     {if t.is_error {
-                                        html! { <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/> }
+                                        html! { <path d="M6 18L18 6M6 6l12 12"/> }
                                     } else {
-                                        html! { <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/> }
+                                        html! { <path d="M5 13l4 4L19 7"/> }
                                     }}
                                 </svg>
                                 <span id="toastContent">{&t.message}</span>
-                                <div class={bar_class} id="toastBar"></div>
+                                <div class="toast-bar"></div>
                             </div>
-                        }
-                    } else {
-                        html! {}
-                    }}
-                </div>
-            </>
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }}
+            </div>
         }
     }
 }
 
 impl App {
+    /// Arm (or re-arm) the debounced auto-copy after any edit to the three
+    /// fields. Dropping the previous `Timeout` cancels it, so the copy only
+    /// runs once the user has stopped for `AUTO_COPY_DELAY_MS` — otherwise
+    /// every keystroke of a name would land a half-typed string on the
+    /// clipboard.
+    fn schedule_auto_copy(&mut self, ctx: &Context<Self>) {
+        self.auto_copy_timeout = None;
+
+        let (text, is_complete) = get_generated_text(
+            &self.applicant_name,
+            &self.selected_category,
+            &self.selected_items,
+            false,
+        );
+        if !is_complete || text == self.last_copied_text {
+            return;
+        }
+
+        let link = ctx.link().clone();
+        self.auto_copy_timeout = Some(Timeout::new(AUTO_COPY_DELAY_MS, move || {
+            link.send_message(Msg::AutoCopy);
+        }));
+    }
+
     fn schedule_toast_clear(&mut self, ctx: &Context<Self>) {
         let link = ctx.link().clone();
         self.toast_timeout = Some(Timeout::new(2800, move || {
             link.send_message(Msg::HideToast);
         }));
-    }
-
-    fn handle_ripple_effect(&self, e: MouseEvent) {
-        if let Some(target) = e.current_target() {
-            if let Ok(btn) = target.dyn_into::<web_sys::HtmlElement>() {
-                let rect = btn.get_bounding_client_rect();
-                let size = rect.width().max(rect.height());
-                if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
-                    if let Ok(ripple) = doc.create_element("span") {
-                        let _ = ripple.set_attribute("class", "ripple");
-                        let _ = ripple.set_attribute("style", &format!(
-                            "width: {}px; height: {}px; left: {}px; top: {}px; position: absolute; border-radius: 50%; background: rgba(255,255,255,0.25); transform: scale(0); pointer-events: none; animation: ripple 0.5s ease-out;",
-                            size,
-                            size,
-                            e.client_x() as f64 - rect.left() - size / 2.0,
-                            e.client_y() as f64 - rect.top() - size / 2.0
-                        ));
-                        let _ = btn.append_child(&ripple);
-                        let ripple_clone = ripple.clone();
-                        let closure = Closure::wrap(Box::new(move || {
-                            ripple_clone.remove();
-                        }) as Box<dyn FnMut()>);
-                        let _ = ripple.add_event_listener_with_callback("animationend", closure.as_ref().unchecked_ref());
-                        closure.forget();
-                    }
-                }
-            }
-        }
     }
 }
 
