@@ -182,6 +182,9 @@ img { display: block; max-width: 100%; }
     justify-content: space-between;
     gap: var(--space-2);
 }
+/* heads whose title and tag are the same optical size line up on centre
+   instead of on the baseline */
+.card-head-center { align-items: center; }
 
 /* ═══════════════════════════════════════
    Tags
@@ -414,12 +417,6 @@ img { display: block; max-width: 100%; }
 /* ═══════════════════════════════════════
    Preview + copy
    ═══════════════════════════════════════ */
-.preview-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2);
-}
 .preview-box {
     background: var(--color-bg);
     border: 1px solid var(--color-divider);
@@ -460,6 +457,45 @@ img { display: block; max-width: 100%; }
     padding: 1px 6px;
     font-size: 10px;
     font-weight: 600;
+}
+
+/* ═══════════════════════════════════════
+   應備文件檢核表
+   ═══════════════════════════════════════ */
+.docs-empty {
+    padding: var(--space-3) 0;
+    font-size: 12px;
+    opacity: 0.5;
+}
+.docs-list { animation: medgenSlideDown 0.35s ease both; }
+
+.doc-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--color-divider);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: var(--color-text);
+}
+.doc-item:last-child { border-bottom: none; }
+.doc-item:hover .doc-label { color: var(--color-accent-700); }
+.doc-item.checked .check-box {
+    border-color: var(--color-accent-700);
+    background: var(--color-accent-700);
+}
+.doc-label {
+    font-size: 13px;
+    line-height: 1.5;
+}
+.doc-item.checked .doc-label {
+    text-decoration: line-through;
+    opacity: 0.5;
 }
 
 /* ═══════════════════════════════════════
@@ -607,6 +643,10 @@ img { display: block; max-width: 100%; }
     from { width: 100%; }
     to { width: 0%; }
 }
+@keyframes medgenSlideDown {
+    from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+    to { opacity: 1; transform: translateY(0); max-height: 600px; }
+}
 
 .anim-in { animation: medgenFadeUp 0.4s ease both; }
 .anim-in-2 { animation-duration: 0.45s; }
@@ -615,6 +655,7 @@ img { display: block; max-width: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
     .anim-in { animation: none; }
+    .docs-list { animation: none; }
     .toast-bar { animation: none; width: 100%; }
     .history-chevron { transition: none; }
 }

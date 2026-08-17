@@ -1,5 +1,6 @@
 use gloo_storage::{LocalStorage, Storage};
 use gloo_timers::callback::Timeout;
+use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Event, KeyboardEvent, MouseEvent};
@@ -55,6 +56,66 @@ const ITEMS: &[Item] = &[
     Item { id: "damage_reissue", label: "損壞補發" },
     Item { id: "renew", label: "到期換發" },
 ];
+
+/// 應備文件 master list. The numeric `code` is the stable identity — the
+/// per-item tables below reference documents by code, and `checked_docs`
+/// stores codes, so relabelling a document never loses a tick.
+struct DocumentRow {
+    code: u8,
+    label: &'static str,
+}
+
+const DOCUMENTS: &[DocumentRow] = &[
+    DocumentRow { code: 1, label: "公會證明文件(執業、換照、變更、歇業、停業、復業)" },
+    DocumentRow { code: 2, label: "證書及專科證書正本(影本)" },
+    DocumentRow { code: 3, label: "新服務機構在職證明" },
+    DocumentRow { code: 4, label: "服務機構停業、復業證明" },
+    DocumentRow { code: 5, label: "服務機構登記變更證明" },
+    DocumentRow { code: 6, label: "服務機構離職證明" },
+    DocumentRow { code: 7, label: "身分證正本(影本)" },
+    DocumentRow { code: 8, label: "原執業執照" },
+    DocumentRow { code: 9, label: "執業執照遺失切結書" },
+    DocumentRow { code: 10, label: "規費300元" },
+    DocumentRow { code: 11, label: "照片1吋2張(近照三個月)" },
+    DocumentRow { code: 12, label: "繼續教育學分證明" },
+    DocumentRow { code: 13, label: "委託書、被委託人身分證影本(非本人辦理)" },
+];
+
+/// Required for every 申請項目, appended once any item is selected.
+const BASE_DOC_CODES: &[u8] = &[13];
+
+struct ItemDocs {
+    item_id: &'static str,
+    codes: &'static [u8],
+}
+
+const ITEM_DOC_CODES: &[ItemDocs] = &[
+    ItemDocs { item_id: "register", codes: &[1, 2, 3, 7, 10, 11] },
+    ItemDocs { item_id: "suspend", codes: &[2, 4, 7, 8] },
+    ItemDocs { item_id: "resume", codes: &[2, 4, 7, 8] },
+    ItemDocs { item_id: "cessation", codes: &[1, 2, 6, 7, 8] },
+    ItemDocs { item_id: "dept_change", codes: &[1, 2, 5, 7, 8, 10, 11] },
+    ItemDocs { item_id: "name_change", codes: &[1, 2, 5, 7, 8, 10, 11] },
+    ItemDocs { item_id: "inst_change", codes: &[1, 2, 3, 6, 7, 8, 10, 11] },
+    ItemDocs { item_id: "cat_change", codes: &[1, 2, 5, 7, 8, 10, 11] },
+    ItemDocs { item_id: "lost_reissue", codes: &[2, 7, 9, 10, 11] },
+    ItemDocs { item_id: "damage_reissue", codes: &[2, 7, 8, 10, 11] },
+    ItemDocs { item_id: "renew", codes: &[1, 2, 7, 8, 10, 11, 12] },
+];
+
+/// Documents an item only needs for certain 申請類別.
+struct ConditionalDoc {
+    item_id: &'static str,
+    categories: &'static [&'static str],
+    code: u8,
+}
+
+// 停業辦理人為護理師(護士)或醫師時，需另附公會證明文件(1)。
+const ITEM_CONDITIONAL_DOC_CODES: &[ConditionalDoc] = &[ConditionalDoc {
+    item_id: "suspend",
+    categories: &["nurse", "physician"],
+    code: 1,
+}];
 
 /// How long the three fields must sit unchanged before the text is copied
 /// automatically.
@@ -143,6 +204,52 @@ fn get_generated_text(
     (text, is_complete)
 }
 
+/// The 應備文件 for the current selection: the union of every selected item's
+/// documents (plus any 類別-conditional extras and the always-required base
+/// set), sorted by code so the checklist order stays stable no matter which
+/// order the items were ticked in. Empty until at least one item is selected.
+fn required_doc_codes(selected_items: &[String], category_id: &Option<String>) -> Vec<u8> {
+    if selected_items.is_empty() {
+        return Vec::new();
+    }
+
+    let mut codes: Vec<u8> = Vec::new();
+    fn push(codes: &mut Vec<u8>, code: u8) {
+        if !codes.contains(&code) {
+            codes.push(code);
+        }
+    }
+
+    for item_id in selected_items {
+        if let Some(entry) = ITEM_DOC_CODES.iter().find(|e| e.item_id == item_id) {
+            for &code in entry.codes {
+                push(&mut codes, code);
+            }
+        }
+        for cond in ITEM_CONDITIONAL_DOC_CODES.iter().filter(|c| c.item_id == item_id) {
+            let matches_category = category_id
+                .as_ref()
+                .map_or(false, |cat| cond.categories.contains(&cat.as_str()));
+            if matches_category {
+                push(&mut codes, cond.code);
+            }
+        }
+    }
+    for &code in BASE_DOC_CODES {
+        push(&mut codes, code);
+    }
+
+    codes.sort_unstable();
+    codes
+}
+
+fn doc_label(code: u8) -> &'static str {
+    DOCUMENTS
+        .iter()
+        .find(|d| d.code == code)
+        .map_or("", |d| d.label)
+}
+
 // Auto-focus is desktop-only: on a phone it pops the virtual keyboard on load
 // and again after every copy, shoving the sticky `.mobile-bar` up the screen.
 // Queried as a media query rather than `inner_width` so it stays locked to the
@@ -172,6 +279,7 @@ enum Msg {
     SelectCategory(String),
     ToggleItem(String),
     SelectTab(String),
+    ToggleDoc(u8),
     CopyText,
     CopySuccess(String),
     CopyError,
@@ -196,6 +304,9 @@ struct App {
     selected_category: Option<String>,
     selected_items: Vec<String>,
     selected_group_tab: String,
+    // Ticked 應備文件, by document code. Session-only and deliberately not
+    // persisted — it tracks one visit to the counter, not a standing list.
+    checked_docs: HashSet<u8>,
     copy_history: Vec<HistoryEntry>,
     recent_names: Vec<String>,
     history_open: bool,
@@ -290,6 +401,7 @@ impl Component for App {
             selected_category: None,
             selected_items: Vec::new(),
             selected_group_tab: "全部".to_string(),
+            checked_docs: HashSet::new(),
             copy_history,
             recent_names,
             history_open: false,
@@ -340,6 +452,12 @@ impl Component for App {
             }
             Msg::SelectTab(tab) => {
                 self.selected_group_tab = tab;
+                true
+            }
+            Msg::ToggleDoc(code) => {
+                if !self.checked_docs.remove(&code) {
+                    self.checked_docs.insert(code);
+                }
                 true
             }
             Msg::CopyText => {
@@ -506,6 +624,7 @@ impl Component for App {
                 self.selected_category = None;
                 self.selected_items.clear();
                 self.selected_group_tab = "全部".to_string();
+                self.checked_docs.clear();
                 self.schedule_auto_copy(ctx);
                 self.toast = Some(ToastState {
                     message: "已清除所有選擇".to_string(),
@@ -660,6 +779,9 @@ impl Component for App {
             })
             .collect();
         let suggestions_visible = self.name_suggestions_open && !filtered_suggestions.is_empty();
+
+        let doc_codes = required_doc_codes(&self.selected_items, &self.selected_category);
+        let docs_checked_count = doc_codes.iter().filter(|c| self.checked_docs.contains(c)).count();
 
         html! {
             <div class="app-shell">
@@ -863,8 +985,8 @@ impl Component for App {
                     <div class="col-preview anim-in anim-in-4">
 
                         <section class="card">
-                            <div class="preview-head">
-                                <div class="card-kicker">{"產生結果"}</div>
+                            <div class="card-head card-head-center">
+                                <div class="card-title">{"產生結果"}</div>
                                 <span class={if is_complete { "tag tag-accent" } else { "tag tag-neutral" }}>
                                     {if is_complete { "可複製" } else { "未完成" }}
                                 </span>
@@ -901,6 +1023,55 @@ impl Component for App {
                                 <span class="key-cap">{"Enter"}</span>
                                 <span>{"快速複製"}</span>
                             </div>
+                        </section>
+
+                        // 應備文件檢核表 — derived from the selected 申請項目
+                        <section class="card" aria-label="應備文件檢核表">
+                            <div class="card-head card-head-center">
+                                <div class="card-title">{"應備文件檢核表"}</div>
+                                {if doc_codes.is_empty() {
+                                    html! {}
+                                } else {
+                                    html! {
+                                        <span class="tag tag-outline tag-mode">
+                                            {format!("{}/{}", docs_checked_count, doc_codes.len())}
+                                        </span>
+                                    }
+                                }}
+                            </div>
+                            <div class="hr hr-tight"></div>
+                            {if doc_codes.is_empty() {
+                                html! { <div class="docs-empty">{"選擇申請項目後，將自動列出應備文件"}</div> }
+                            } else {
+                                html! {
+                                    <div class="docs-list">
+                                        {for doc_codes.iter().map(|&code| {
+                                            let checked = self.checked_docs.contains(&code);
+                                            html! {
+                                                <button
+                                                    type="button"
+                                                    class={if checked { "doc-item checked" } else { "doc-item" }}
+                                                    aria-pressed={if checked { "true" } else { "false" }}
+                                                    onclick={ctx.link().callback(move |_| Msg::ToggleDoc(code))}
+                                                >
+                                                    <span class="check-box">
+                                                        {if checked {
+                                                            html! {
+                                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                                                                    <path d="M5 13l4 4L19 7"/>
+                                                                </svg>
+                                                            }
+                                                        } else {
+                                                            html! {}
+                                                        }}
+                                                    </span>
+                                                    <span class="doc-label">{doc_label(code)}</span>
+                                                </button>
+                                            }
+                                        })}
+                                    </div>
+                                }
+                            }}
                         </section>
 
                         <section class="card history-card">
