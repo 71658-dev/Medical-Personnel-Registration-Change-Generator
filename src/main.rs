@@ -193,8 +193,8 @@ const TUTORIAL_STEPS: &[TutorialStep] = &[
         skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
     },
     TutorialStep {
-        title: "複製文字",
-        body: "三個欄位都填寫完成後即可按下「複製文字」，公文主旨就會複製到剪貼簿並顯示成功提示。電腦版按鈕在畫面右側，手機版則在畫面下方的複製列。",
+        title: "自動複製",
+        body: "三個欄位都填寫完成後，只要靜置約 0.6 秒不再更動，系統就會自動把文字複製到剪貼簿（畫面會顯示「已自動複製」提示）。若想立即複製，也可以直接按這個「複製文字」按鈕。電腦版按鈕在畫面右側，手機版則在畫面下方的複製列。",
         target_desktop: Some("desktopCopyBtn"), target_mobile: Some("mobileCopyBtn"),
         skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
     },
@@ -203,12 +203,6 @@ const TUTORIAL_STEPS: &[TutorialStep] = &[
         body: "填完三個欄位後，直接按 Ctrl（Mac 為 ⌘）+ Enter 就能快速複製，不必用滑鼠點擊按鈕。",
         target_desktop: Some("shortcutHint"), target_mobile: None,
         skip_on_desktop: false, skip_on_mobile: true, requires_install_prompt: false,
-    },
-    TutorialStep {
-        title: "自動複製",
-        body: "三個欄位都填寫完成後，只要靜置約 0.6 秒不再更動，系統就會自動把文字複製到剪貼簿（畫面會顯示「已自動複製」提示），不需要每次都手動按複製。",
-        target_desktop: Some("outputResult"), target_mobile: Some("mobilePreview"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
     },
     TutorialStep {
         title: "應備文件檢核表",
