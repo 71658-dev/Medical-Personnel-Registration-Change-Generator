@@ -133,6 +133,115 @@ struct ToastState {
     is_error: bool,
 }
 
+/// One stop on the guided tour. `target_desktop`/`target_mobile` are element
+/// `id`s looked up at render time — `None` means the step has no spotlight
+/// (intro/outro). `skip_on_*` drops a step from navigation entirely on that
+/// viewport (e.g. the Ctrl+Enter tip has nothing to point at on mobile);
+/// `requires_install_prompt` does the same unless `deferred_prompt` is set.
+struct TutorialStep {
+    title: &'static str,
+    body: &'static str,
+    target_desktop: Option<&'static str>,
+    target_mobile: Option<&'static str>,
+    skip_on_desktop: bool,
+    skip_on_mobile: bool,
+    requires_install_prompt: bool,
+}
+
+impl TutorialStep {
+    fn is_visible(&self, is_desktop: bool, install_available: bool) -> bool {
+        if is_desktop && self.skip_on_desktop {
+            return false;
+        }
+        if !is_desktop && self.skip_on_mobile {
+            return false;
+        }
+        if self.requires_install_prompt && !install_available {
+            return false;
+        }
+        true
+    }
+
+    fn target_id(&self, is_desktop: bool) -> Option<&'static str> {
+        if is_desktop { self.target_desktop } else { self.target_mobile }
+    }
+}
+
+const TUTORIAL_STEPS: &[TutorialStep] = &[
+    TutorialStep {
+        title: "歡迎使用執業異動文字產生器",
+        body: "只要三個步驟——姓名、申請類別、申請項目——就能自動組成公文主旨並複製到剪貼簿。這份教學會帶你認識所有功能與小技巧，隨時可以按「跳過」結束。",
+        target_desktop: None, target_mobile: None,
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "STEP 01・輸入姓名",
+        body: "在這裡輸入申請人姓名。曾經使用過的姓名會出現在下方「最近使用」清單中，點一下即可快速帶入；欄位右側的 ✕ 可一鍵清空。",
+        target_desktop: Some("nameCard"), target_mobile: Some("nameCard"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "STEP 02・選擇申請類別",
+        body: "上方頁籤可依類別分組篩選，下方清單為單選。提醒：切換申請類別會自動清空已選的申請項目，因為不同類別對應的項目並不相同。",
+        target_desktop: Some("categoryCard"), target_mobile: Some("categoryCard"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "STEP 03・選擇申請項目",
+        body: "申請項目可以複選，能一次勾選多種異動類型，例如同時辦理「機構變更」與「科別變更」。",
+        target_desktop: Some("itemsCard"), target_mobile: Some("itemsCard"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "複製文字",
+        body: "三個欄位都填寫完成後即可按下「複製文字」，公文主旨就會複製到剪貼簿並顯示成功提示。電腦版按鈕在畫面右側，手機版則在畫面下方的複製列。",
+        target_desktop: Some("desktopCopyBtn"), target_mobile: Some("mobileCopyBtn"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "小技巧：Ctrl + Enter",
+        body: "填完三個欄位後，直接按 Ctrl（Mac 為 ⌘）+ Enter 就能快速複製，不必用滑鼠點擊按鈕。",
+        target_desktop: Some("shortcutHint"), target_mobile: None,
+        skip_on_desktop: false, skip_on_mobile: true, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "自動複製",
+        body: "三個欄位都填寫完成後，只要靜置約 0.6 秒不再更動，系統就會自動把文字複製到剪貼簿（畫面會顯示「已自動複製」提示），不需要每次都手動按複製。",
+        target_desktop: Some("outputResult"), target_mobile: Some("mobilePreview"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "應備文件檢核表",
+        body: "根據所選的申請項目，會自動列出對應的應備文件，可以逐項打勾核對並顯示勾選進度。部分申請類別（例如護理師、醫師辦理停業）還會自動加上公會證明文件等額外規定。這份勾選清單僅供本次使用參考，重新整理頁面後會重置。",
+        target_desktop: Some("docsCard"), target_mobile: Some("docsCard"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "複製紀錄",
+        body: "點擊右上角的紀錄圖示可展開最近 20 筆複製紀錄；點選其中一筆能重新複製，也能一鍵清除全部紀錄。",
+        target_desktop: Some("historyBtn"), target_mobile: Some("historyBtn"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "清除重填",
+        body: "想重新開始時，按下這個圖示可以一次清空姓名、申請類別、申請項目與已勾選的應備文件。",
+        target_desktop: Some("resetBtn"), target_mobile: Some("resetBtn"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+    TutorialStep {
+        title: "安裝為應用程式",
+        body: "瀏覽器支援的話，可以按下「安裝」把本工具加到桌面或主畫面，之後不必開瀏覽器即可直接使用，並支援離線操作。",
+        target_desktop: Some("installBtn"), target_mobile: Some("installBtn"),
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: true,
+    },
+    TutorialStep {
+        title: "教學結束",
+        body: "現在你已經認識所有功能了！之後想重看這份教學，隨時可以按右上角的「？」圖示重新開啟。",
+        target_desktop: None, target_mobile: None,
+        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+    },
+];
+
 // ═══════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════
@@ -297,6 +406,11 @@ enum Msg {
     TriggerInstall,
     InstallPromptAvailable(JsValue),
     AppInstalled,
+    TutorialStart,
+    TutorialNext,
+    TutorialPrev,
+    TutorialSkip,
+    TutorialFinish,
 }
 
 struct App {
@@ -313,6 +427,13 @@ struct App {
     toast: Option<ToastState>,
     name_suggestions_open: bool,
     copied_morph: bool,
+    // None = tutorial not running. Set to Some(0) on first visit (unless
+    // medgen_tutorial_seen is already true) or by the "?" reopen button.
+    tutorial_step: Option<usize>,
+    tutorial_seen: bool,
+    // Which step's target has already been scrolled into view, so `rendered`
+    // only scrolls once per step change rather than on every re-render.
+    tutorial_scrolled_step: Option<usize>,
     name_ref: NodeRef,
     // Set when something should hand focus back to the name input on the next
     // render (see `rendered`); first render focuses unconditionally.
@@ -354,12 +475,16 @@ impl Component for App {
             .take(8)
             .collect();
 
-        // Keydown shortcut setup (Ctrl + Enter)
+        let tutorial_seen: bool = LocalStorage::get::<bool>("medgen_tutorial_seen").unwrap_or(false);
+
+        // Keydown shortcut setup (Ctrl + Enter to copy, Escape to close the tour)
         let link = ctx.link().clone();
         let keydown_closure = Closure::wrap(Box::new(move |event: KeyboardEvent| {
             if (event.ctrl_key() || event.meta_key()) && event.key() == "Enter" {
                 event.prevent_default();
                 link.send_message(Msg::CopyText);
+            } else if event.key() == "Escape" {
+                link.send_message(Msg::TutorialSkip);
             }
         }) as Box<dyn FnMut(KeyboardEvent)>);
 
@@ -408,6 +533,9 @@ impl Component for App {
             toast: None,
             name_suggestions_open: false,
             copied_morph: false,
+            tutorial_step: if tutorial_seen { None } else { Some(0) },
+            tutorial_seen,
+            tutorial_scrolled_step: None,
             name_ref: NodeRef::default(),
             focus_name_pending: false,
             suppress_focus_suggestions: false,
@@ -461,6 +589,12 @@ impl Component for App {
                 true
             }
             Msg::CopyText => {
+                // The tour is "look, don't touch" — its spotlighted target is
+                // visually raised above the backdrop but shouldn't trigger a
+                // real copy of whatever (likely incomplete) state is behind it.
+                if self.tutorial_step.is_some() {
+                    return false;
+                }
                 // Perform checks
                 let name_trimmed = self.applicant_name.trim();
                 if name_trimmed.is_empty() {
@@ -692,16 +826,79 @@ impl Component for App {
                 self.schedule_toast_clear(ctx);
                 true
             }
+            Msg::TutorialStart => {
+                self.tutorial_step = Some(0);
+                self.tutorial_scrolled_step = None;
+                true
+            }
+            Msg::TutorialNext => {
+                if let Some(cur) = self.tutorial_step {
+                    if let Some(next) = self.tutorial_next_index(cur) {
+                        self.tutorial_step = Some(next);
+                    }
+                }
+                true
+            }
+            Msg::TutorialPrev => {
+                if let Some(cur) = self.tutorial_step {
+                    if let Some(prev) = self.tutorial_prev_index(cur) {
+                        self.tutorial_step = Some(prev);
+                    }
+                }
+                true
+            }
+            Msg::TutorialSkip => {
+                // Idempotent on purpose — it's the unconditional target of the
+                // global Escape key, whether or not a tour happens to be open.
+                self.tutorial_step = None;
+                self.tutorial_seen = true;
+                let _ = LocalStorage::set("medgen_tutorial_seen", &true);
+                true
+            }
+            Msg::TutorialFinish => {
+                self.tutorial_step = None;
+                self.tutorial_seen = true;
+                let _ = LocalStorage::set("medgen_tutorial_seen", &true);
+                self.toast = Some(ToastState {
+                    message: "教學結束，祝使用順利！".to_string(),
+                    is_error: false,
+                });
+                self.schedule_toast_clear(ctx);
+                true
+            }
         }
     }
 
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+        if let Some(idx) = self.tutorial_step {
+            if self.tutorial_scrolled_step != Some(idx) {
+                self.tutorial_scrolled_step = Some(idx);
+                let target_id = TUTORIAL_STEPS
+                    .get(idx)
+                    .and_then(|step| step.target_id(is_desktop_viewport()));
+                if let Some(id) = target_id {
+                    if let Some(el) = web_sys::window()
+                        .and_then(|w| w.document())
+                        .and_then(|d| d.get_element_by_id(id))
+                    {
+                        let opts = web_sys::ScrollIntoViewOptions::new();
+                        opts.set_behavior(web_sys::ScrollBehavior::Smooth);
+                        opts.set_block(web_sys::ScrollLogicalPosition::Start);
+                        el.scroll_into_view_with_scroll_into_view_options(&opts);
+                    }
+                }
+            }
+        }
+
         if !first_render && !self.focus_name_pending {
             return;
         }
         self.focus_name_pending = false;
 
-        if !is_desktop_viewport() {
+        // The tour is "look, don't touch" — don't hand real keyboard focus to
+        // a field sitting underneath the dimmed backdrop just because this is
+        // the first render (the tour can auto-launch on the very same frame).
+        if self.tutorial_step.is_some() || !is_desktop_viewport() {
             return;
         }
 
@@ -783,15 +980,36 @@ impl Component for App {
         let doc_codes = required_doc_codes(&self.selected_items, &self.selected_category);
         let docs_checked_count = doc_codes.iter().filter(|c| self.checked_docs.contains(c)).count();
 
+        // ─── Tutorial spotlight ───
+        // `is_target` drives the `.tutorial-target` class on the handful of
+        // elements the tour can point at; `nav_lifted`/`mobile_bar_lifted`
+        // counter the fact that `.nav`/`.mobile-bar` are themselves stacking
+        // contexts (they set both `position` and `z-index`), so a spotlighted
+        // descendant's z-index is only compared *within* that context unless
+        // the context itself is also raised above the backdrop.
+        let is_desktop = is_desktop_viewport();
+        let tutorial_target: Option<&'static str> = self
+            .tutorial_step
+            .and_then(|idx| TUTORIAL_STEPS.get(idx))
+            .and_then(|step| step.target_id(is_desktop));
+        let is_target = |id: &str| tutorial_target == Some(id);
+        let nav_lifted = matches!(tutorial_target, Some("historyBtn") | Some("resetBtn") | Some("installBtn"));
+        let mobile_bar_lifted = matches!(tutorial_target, Some("mobileCopyBtn") | Some("mobilePreview"));
+
         html! {
             <div class="app-shell">
                 // ─── Header ───
-                <header class="nav">
+                <header class={classes!("nav", nav_lifted.then_some("tutorial-lift"))}>
                     <span class="nav-brand">{"醫事人員執業異動文字產生器"}</span>
                     <div class="nav-actions">
                         {if self.deferred_prompt.is_some() {
                             html! {
-                                <button class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::TriggerInstall)} aria-label="安裝應用">
+                                <button
+                                    id="installBtn"
+                                    class={classes!("btn", "btn-secondary", is_target("installBtn").then_some("tutorial-target"))}
+                                    onclick={ctx.link().callback(|_| Msg::TriggerInstall)}
+                                    aria-label="安裝應用"
+                                >
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                                         <polyline points="7 10 12 15 17 10"/>
@@ -803,7 +1021,12 @@ impl Component for App {
                         } else {
                             html! {}
                         }}
-                        <button class="btn btn-icon btn-secondary history-btn" onclick={ctx.link().callback(|_| Msg::ToggleHistory)} aria-label="複製紀錄">
+                        <button
+                            id="historyBtn"
+                            class={classes!("btn", "btn-icon", "btn-secondary", "history-btn", is_target("historyBtn").then_some("tutorial-target"))}
+                            onclick={ctx.link().callback(|_| Msg::ToggleHistory)}
+                            aria-label="複製紀錄"
+                        >
                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="12 8 12 12 14 14"/>
                                 <circle cx="12" cy="12" r="10"/>
@@ -814,12 +1037,29 @@ impl Component for App {
                                 html! {}
                             }}
                         </button>
-                        <button class="btn btn-icon btn-secondary" onclick={ctx.link().callback(|_| Msg::ResetAll)} aria-label="清除重填">
+                        <button
+                            id="resetBtn"
+                            class={classes!("btn", "btn-icon", "btn-secondary", is_target("resetBtn").then_some("tutorial-target"))}
+                            onclick={ctx.link().callback(|_| Msg::ResetAll)}
+                            aria-label="清除重填"
+                        >
                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/>
                                 <path d="M21 3v5h-5"/>
                                 <path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/>
                                 <path d="M3 21v-5h5"/>
+                            </svg>
+                        </button>
+                        <button
+                            id="tutorialReopenBtn"
+                            class="btn btn-icon btn-secondary"
+                            onclick={ctx.link().callback(|_| Msg::TutorialStart)}
+                            aria-label="操作教學"
+                        >
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 2-3 4"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
                         </button>
                     </div>
@@ -830,7 +1070,7 @@ impl Component for App {
                     <div class="col-input">
 
                         // STEP 01 — name
-                        <section class="card anim-in" aria-label="輸入申請人姓名">
+                        <section id="nameCard" class={classes!("card", "anim-in", is_target("nameCard").then_some("tutorial-target"))} aria-label="輸入申請人姓名">
                             <div class="card-head">
                                 <div>
                                     <div class="card-kicker">{"STEP 01"}</div>
@@ -893,7 +1133,7 @@ impl Component for App {
                         </section>
 
                         // STEP 02 — category
-                        <section class="card anim-in anim-in-2" aria-label="選擇申請類別">
+                        <section id="categoryCard" class={classes!("card", "anim-in", "anim-in-2", is_target("categoryCard").then_some("tutorial-target"))} aria-label="選擇申請類別">
                             <div class="card-head">
                                 <div>
                                     <div class="card-kicker">{"STEP 02"}</div>
@@ -939,7 +1179,7 @@ impl Component for App {
                         </section>
 
                         // STEP 03 — items
-                        <section class="card anim-in anim-in-3" aria-label="選擇申請項目">
+                        <section id="itemsCard" class={classes!("card", "anim-in", "anim-in-3", is_target("itemsCard").then_some("tutorial-target"))} aria-label="選擇申請項目">
                             <div class="card-head">
                                 <div>
                                     <div class="card-kicker">{"STEP 03"}</div>
@@ -993,12 +1233,19 @@ impl Component for App {
                             </div>
                             <div class="hr hr-tight"></div>
                             <div class="preview-box">
-                                <p id="outputResult" class={if show_result { "preview-text" } else { "preview-text placeholder" }}>
+                                <p
+                                    id="outputResult"
+                                    class={classes!(
+                                        "preview-text",
+                                        (!show_result).then_some("placeholder"),
+                                        is_target("outputResult").then_some("tutorial-target")
+                                    )}
+                                >
                                     {desktop_preview_text}
                                 </p>
                             </div>
                             <button
-                                class="btn btn-block btn-copy"
+                                class={classes!("btn", "btn-block", "btn-copy", is_target("desktopCopyBtn").then_some("tutorial-target"))}
                                 id="desktopCopyBtn"
                                 disabled={!is_complete}
                                 onclick={ctx.link().callback(|_| Msg::CopyText)}
@@ -1017,7 +1264,7 @@ impl Component for App {
                                 </svg>
                                 {if self.copied_morph { "已複製！" } else { "複製文字" }}
                             </button>
-                            <div class="shortcut-hint">
+                            <div id="shortcutHint" class={classes!("shortcut-hint", is_target("shortcutHint").then_some("tutorial-target"))}>
                                 <span class="key-cap">{"Ctrl"}</span>
                                 <span>{"+"}</span>
                                 <span class="key-cap">{"Enter"}</span>
@@ -1026,7 +1273,7 @@ impl Component for App {
                         </section>
 
                         // 應備文件檢核表 — derived from the selected 申請項目
-                        <section class="card docs-card" aria-label="應備文件檢核表">
+                        <section id="docsCard" class={classes!("card", "docs-card", is_target("docsCard").then_some("tutorial-target"))} aria-label="應備文件檢核表">
                             <div class="card-head card-head-center">
                                 <div class="card-title">{"應備文件檢核表"}</div>
                                 {if doc_codes.is_empty() {
@@ -1074,7 +1321,10 @@ impl Component for App {
                             }}
                         </section>
 
-                        <section class="card history-card">
+                        <section
+                            id="historyCard"
+                            class={classes!("card", "history-card", self.history_open.then_some("history-open-mobile"))}
+                        >
                             <div class="history-header" onclick={ctx.link().callback(|_| Msg::ToggleHistory)}>
                                 <span class="history-label">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1142,21 +1392,24 @@ impl Component for App {
                 </div>
 
                 // ─── Sticky mobile bar (shown below 800px) ───
-                <div class="mobile-bar">
+                <div class={classes!("mobile-bar", mobile_bar_lifted.then_some("tutorial-lift"))}>
                     <div
                         id="mobilePreview"
-                        class={if !show_result {
-                            "mobile-preview placeholder"
-                        } else if is_complete {
-                            "mobile-preview ready"
-                        } else {
-                            "mobile-preview"
-                        }}
+                        class={classes!(
+                            if !show_result {
+                                "mobile-preview placeholder"
+                            } else if is_complete {
+                                "mobile-preview ready"
+                            } else {
+                                "mobile-preview"
+                            },
+                            is_target("mobilePreview").then_some("tutorial-target")
+                        )}
                     >
                         {mobile_preview_text}
                     </div>
                     <button
-                        class="btn btn-copy mobile-copy-btn"
+                        class={classes!("btn", "btn-copy", "mobile-copy-btn", is_target("mobileCopyBtn").then_some("tutorial-target"))}
                         id="mobileCopyBtn"
                         disabled={!is_complete}
                         onclick={ctx.link().callback(|_| Msg::CopyText)}
@@ -1197,6 +1450,9 @@ impl Component for App {
                 } else {
                     html! {}
                 }}
+
+                // ─── Tutorial overlay ───
+                {self.view_tutorial(ctx, is_desktop)}
             </div>
         }
     }
@@ -1232,6 +1488,89 @@ impl App {
         self.toast_timeout = Some(Timeout::new(2800, move || {
             link.send_message(Msg::HideToast);
         }));
+    }
+
+    fn tutorial_step_visible(&self, idx: usize) -> bool {
+        TUTORIAL_STEPS
+            .get(idx)
+            .map_or(false, |s| s.is_visible(is_desktop_viewport(), self.deferred_prompt.is_some()))
+    }
+
+    fn tutorial_next_index(&self, from: usize) -> Option<usize> {
+        ((from + 1)..TUTORIAL_STEPS.len()).find(|&i| self.tutorial_step_visible(i))
+    }
+
+    fn tutorial_prev_index(&self, from: usize) -> Option<usize> {
+        (0..from).rev().find(|&i| self.tutorial_step_visible(i))
+    }
+
+    fn view_tutorial(&self, ctx: &Context<Self>, is_desktop: bool) -> Html {
+        let idx = match self.tutorial_step {
+            Some(idx) => idx,
+            None => return html! {},
+        };
+        let step = match TUTORIAL_STEPS.get(idx) {
+            Some(step) => step,
+            None => return html! {},
+        };
+
+        let install_available = self.deferred_prompt.is_some();
+        let visible_count = TUTORIAL_STEPS
+            .iter()
+            .filter(|s| s.is_visible(is_desktop, install_available))
+            .count();
+        let position = TUTORIAL_STEPS[..=idx]
+            .iter()
+            .filter(|s| s.is_visible(is_desktop, install_available))
+            .count();
+        let has_prev = self.tutorial_prev_index(idx).is_some();
+        let is_last = self.tutorial_next_index(idx).is_none();
+
+        html! {
+            <>
+                <div class="tutorial-backdrop" onclick={ctx.link().callback(|_| Msg::TutorialSkip)}></div>
+                <div class="tutorial-panel anim-in" role="dialog" aria-modal="true" aria-label="操作教學">
+                    <div class="tutorial-panel-head">
+                        <span class="tutorial-progress">{format!("{} / {}", position, visible_count)}</span>
+                        <button
+                            type="button"
+                            class="tutorial-close"
+                            onclick={ctx.link().callback(|_| Msg::TutorialSkip)}
+                            aria-label="跳過教學"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="tutorial-title">{step.title}</div>
+                    <p class="tutorial-body">{step.body}</p>
+                    <div class="tutorial-controls">
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            disabled={!has_prev}
+                            onclick={ctx.link().callback(|_| Msg::TutorialPrev)}
+                        >
+                            {"上一步"}
+                        </button>
+                        {if is_last {
+                            html! {
+                                <button type="button" class="btn btn-primary" onclick={ctx.link().callback(|_| Msg::TutorialFinish)}>
+                                    {"完成"}
+                                </button>
+                            }
+                        } else {
+                            html! {
+                                <button type="button" class="btn btn-primary" onclick={ctx.link().callback(|_| Msg::TutorialNext)}>
+                                    {"下一步"}
+                                </button>
+                            }
+                        }}
+                    </div>
+                </div>
+            </>
+        }
     }
 }
 

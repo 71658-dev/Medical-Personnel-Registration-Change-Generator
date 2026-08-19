@@ -19,7 +19,10 @@ web-sys = { version = "0.3", features = [
     "Element",
     "DomRect",
     "HtmlElement",
-    "MediaQueryList"
+    "MediaQueryList",
+    "ScrollIntoViewOptions",
+    "ScrollBehavior",
+    "ScrollLogicalPosition"
 ] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
