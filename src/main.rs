@@ -1026,7 +1026,7 @@ impl Component for App {
                         </section>
 
                         // 應備文件檢核表 — derived from the selected 申請項目
-                        <section class="card" aria-label="應備文件檢核表">
+                        <section class="card docs-card" aria-label="應備文件檢核表">
                             <div class="card-head card-head-center">
                                 <div class="card-title">{"應備文件檢核表"}</div>
                                 {if doc_codes.is_empty() {

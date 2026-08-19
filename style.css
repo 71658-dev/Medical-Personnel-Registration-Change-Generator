@@ -628,7 +628,15 @@ img { display: block; max-width: 100%; }
         flex-wrap: wrap;
         padding-bottom: 7rem;
     }
-    .col-preview { display: none; }
+    /* Preview column collapses, but the 應備文件檢核表 card stays put — it
+       doesn't need 姓名 to be correct and the sticky mobile bar has no room
+       for a checklist, so it renders inline below STEP 03 instead. */
+    .col-preview {
+        display: block;
+        width: 100%;
+        position: static;
+    }
+    .col-preview > .card:not(.docs-card) { display: none; }
     .mobile-bar { display: block; }
 }
 
