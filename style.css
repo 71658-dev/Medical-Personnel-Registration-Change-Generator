@@ -664,7 +664,11 @@ img { display: block; max-width: 100%; }
     outline: 3px solid var(--color-accent);
     outline-offset: 3px;
     box-shadow: var(--shadow-lg), 0 0 0 8px color-mix(in srgb, var(--color-accent) 22%, transparent);
-    background: var(--color-bg);
+    /* No background override here — every target already has its own opaque
+       background (`.card`, `.btn-copy`, its `.nav`/`.mobile-bar` ancestor…),
+       and forcing one here previously stomped colored buttons like the red
+       複製文字 button, turning its light text invisible against a now-matching
+       light background. */
     /* Look, don't touch — the real element is only raised for visibility. */
     pointer-events: none;
 }
