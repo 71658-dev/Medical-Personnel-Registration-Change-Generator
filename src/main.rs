@@ -3,7 +3,7 @@ use gloo_timers::callback::Timeout;
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Event, HtmlElement, KeyboardEvent, MouseEvent};
+use web_sys::{Event, KeyboardEvent, MouseEvent};
 use yew::prelude::*;
 
 // ═══════════════════════════════════════════════════
@@ -133,108 +133,85 @@ struct ToastState {
     is_error: bool,
 }
 
-/// One stop on the guided tour. `target_desktop`/`target_mobile` are element
-/// `id`s looked up at render time — `None` means the step has no spotlight
-/// (intro/outro). `skip_on_*` drops a step from navigation entirely on that
-/// viewport (e.g. the Ctrl+Enter tip has nothing to point at on mobile);
-/// `requires_install_prompt` does the same unless `deferred_prompt` is set.
+/// Which part of the app a tour step spotlights. `Copy` resolves to a
+/// different element per viewport (the desktop button lives in its own
+/// result card; the mobile one lives in the sticky bottom bar) — every other
+/// variant targets the same card on both.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TourTarget {
+    Name,
+    Category,
+    Items,
+    Copy,
+    Docs,
+}
+
+/// One stop on the guided tour. `target: None` means the step has no
+/// spotlight (intro/outro) and renders as a centered panel instead.
 struct TutorialStep {
     title: &'static str,
     body: &'static str,
-    target_desktop: Option<&'static str>,
-    target_mobile: Option<&'static str>,
-    skip_on_desktop: bool,
-    skip_on_mobile: bool,
-    requires_install_prompt: bool,
+    target: Option<TourTarget>,
 }
 
 impl TutorialStep {
-    fn is_visible(&self, is_desktop: bool, install_available: bool) -> bool {
-        if is_desktop && self.skip_on_desktop {
-            return false;
-        }
-        if !is_desktop && self.skip_on_mobile {
-            return false;
-        }
-        if self.requires_install_prompt && !install_available {
-            return false;
-        }
-        true
-    }
-
+    /// `id` of the element that gets the spotlight ring — also the scroll
+    /// target and, for every variant but mobile `Copy`, the panel's host.
     fn target_id(&self, is_desktop: bool) -> Option<&'static str> {
-        if is_desktop { self.target_desktop } else { self.target_mobile }
+        Some(match self.target? {
+            TourTarget::Name => "nameCard",
+            TourTarget::Category => "categoryCard",
+            TourTarget::Items => "itemsCard",
+            TourTarget::Copy => if is_desktop { "resultCard" } else { "mobileCopyBtn" },
+            TourTarget::Docs => "docsCard",
+        })
     }
 }
 
 const TUTORIAL_STEPS: &[TutorialStep] = &[
     TutorialStep {
         title: "歡迎使用執業異動文字產生器",
-        body: "只要三個步驟——姓名、申請類別、申請項目——就能自動組成公文主旨並複製到剪貼簿。這份教學會帶你認識所有功能與小技巧，隨時可以按「跳過」結束。",
-        target_desktop: None, target_mobile: None,
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+        body: "只要三個步驟——姓名、申請類別、申請項目——就能自動組成公文主旨並複製到剪貼簿。這份導覽只講核心流程，其他功能會在您用到時另外提示一次，隨時可按右上角 ✕ 或 Esc 跳過。",
+        target: None,
     },
     TutorialStep {
         title: "STEP 01・輸入姓名",
-        body: "在這裡輸入申請人姓名。曾經使用過的姓名會出現在下方「最近使用」清單中，點一下即可快速帶入；欄位右側的 ✕ 可一鍵清空。",
-        target_desktop: Some("nameCard"), target_mobile: Some("nameCard"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+        body: "在這裡輸入申請人姓名，欄位右側的 ✕ 可一鍵清空。",
+        target: Some(TourTarget::Name),
     },
     TutorialStep {
         title: "STEP 02・選擇申請類別",
-        body: "上方頁籤可依類別分組篩選，下方清單為單選。提醒：切換申請類別會自動清空已選的申請項目，因為不同類別對應的項目並不相同。",
-        target_desktop: Some("categoryCard"), target_mobile: Some("categoryCard"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+        body: "上方頁籤可依類別分組篩選，下方清單為單選；切換申請類別會自動清空已選的申請項目。",
+        target: Some(TourTarget::Category),
     },
     TutorialStep {
         title: "STEP 03・選擇申請項目",
         body: "申請項目可以複選，能一次勾選多種異動類型，例如同時辦理「機構變更」與「科別變更」。",
-        target_desktop: Some("itemsCard"), target_mobile: Some("itemsCard"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+        target: Some(TourTarget::Items),
     },
     TutorialStep {
-        title: "自動複製",
-        body: "三個欄位都填寫完成後，只要靜置約 0.6 秒不再更動，系統就會自動把文字複製到剪貼簿（畫面會顯示「已自動複製」提示）。若想立即複製，也可以直接按這個「複製文字」按鈕。電腦版按鈕在畫面右側，手機版則在畫面下方的複製列。",
-        target_desktop: Some("desktopCopyBtn"), target_mobile: Some("mobileCopyBtn"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
-    },
-    TutorialStep {
-        title: "小技巧：Ctrl + Enter",
-        body: "填完三個欄位後，直接按 Ctrl（Mac 為 ⌘）+ Enter 就能快速複製，不必用滑鼠點擊按鈕。",
-        target_desktop: Some("shortcutHint"), target_mobile: None,
-        skip_on_desktop: false, skip_on_mobile: true, requires_install_prompt: false,
+        title: "複製文字",
+        body: "三個欄位都填好後會自動複製到剪貼簿；也可以直接按這個按鈕立即複製。",
+        target: Some(TourTarget::Copy),
     },
     TutorialStep {
         title: "應備文件檢核表",
-        body: "根據所選的申請項目，會自動列出對應的應備文件，可以逐項打勾核對並顯示勾選進度。部分申請類別（例如護理師、醫師辦理停業）還會自動加上公會證明文件等額外規定。這份勾選清單僅供本次使用參考，重新整理頁面後會重置。",
-        target_desktop: Some("docsCard"), target_mobile: Some("docsCard"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+        body: "根據所選的申請項目，這裡會自動列出對應的應備文件，可以逐項打勾核對進度。",
+        target: Some(TourTarget::Docs),
     },
     TutorialStep {
-        title: "複製紀錄",
-        body: "點擊右上角的紀錄圖示可展開最近 20 筆複製紀錄；點選其中一筆能重新複製，也能一鍵清除全部紀錄。",
-        target_desktop: Some("historyBtn"), target_mobile: Some("historyBtn"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
-    },
-    TutorialStep {
-        title: "清除重填",
-        body: "想重新開始時，按下這個圖示可以一次清空姓名、申請類別、申請項目與已勾選的應備文件。",
-        target_desktop: Some("resetBtn"), target_mobile: Some("resetBtn"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
-    },
-    TutorialStep {
-        title: "安裝為應用程式",
-        body: "瀏覽器支援的話，可以按下「安裝」把本工具加到桌面或主畫面，之後不必開瀏覽器即可直接使用，並支援離線操作。",
-        target_desktop: Some("installBtn"), target_mobile: Some("installBtn"),
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: true,
-    },
-    TutorialStep {
-        title: "教學結束",
-        body: "現在你已經認識所有功能了！之後想重看這份教學，隨時可以按右上角的「？」圖示重新開啟。",
-        target_desktop: None, target_mobile: None,
-        skip_on_desktop: false, skip_on_mobile: false, requires_install_prompt: false,
+        title: "核心流程介紹完了",
+        body: "複製紀錄、Ctrl+Enter 快捷鍵等功能，會在您第一次用到時另外提示一次；之後想重看導覽，按右上角「教學」按鈕即可。",
+        target: None,
     },
 ];
+
+/// Demo text typed into the name field during STEP 01 of the tour.
+const TOUR_DEMO_NAME: &str = "王小明";
+/// The two items auto-toggled during STEP 03 of the tour.
+const TOUR_DEMO_ITEMS: [&str; 2] = ["register", "dept_change"];
+/// The category auto-selected during STEP 02 of the tour.
+const TOUR_DEMO_CATEGORY: &str = "physician";
 
 // ═══════════════════════════════════════════════════
 // HELPERS
@@ -363,51 +340,6 @@ fn is_desktop_viewport() -> bool {
         .map_or(false, |mql| mql.matches())
 }
 
-// Positions the tutorial panel for the current step. Steps with no target
-// (welcome/finish) clear any inline top/left so the `.tutorial-panel-centered`
-// CSS class (inset + margin: auto) takes over. Steps with a target compute a
-// spot next to the target's current bounding rect — below it if there's room,
-// above otherwise, clamped inside the viewport — and set it as inline top/left
-// px values; the `.tutorial-panel` CSS transition on those properties is what
-// makes the panel visibly glide to each new target rather than jump.
-fn position_tutorial_panel(panel_ref: &NodeRef, target_id: Option<&str>) {
-    let Some(panel_el) = panel_ref.cast::<HtmlElement>() else { return };
-    let style = panel_el.style();
-
-    let Some(id) = target_id else {
-        let _ = style.remove_property("top");
-        let _ = style.remove_property("left");
-        return;
-    };
-
-    let Some(window) = web_sys::window() else { return };
-    let Some(target_el) = window.document().and_then(|d| d.get_element_by_id(id)) else { return };
-
-    let target_rect = target_el.get_bounding_client_rect();
-    let panel_rect = panel_el.get_bounding_client_rect();
-    let viewport_w = window.inner_width().ok().and_then(|v| v.as_f64()).unwrap_or(target_rect.right());
-    let viewport_h = window.inner_height().ok().and_then(|v| v.as_f64()).unwrap_or(target_rect.bottom());
-
-    const GAP: f64 = 16.0;
-    const MARGIN: f64 = 16.0;
-    let panel_w = panel_rect.width();
-    let panel_h = panel_rect.height();
-
-    let top = if target_rect.bottom() + GAP + panel_h <= viewport_h {
-        target_rect.bottom() + GAP
-    } else if target_rect.top() - GAP - panel_h >= 0.0 {
-        target_rect.top() - GAP - panel_h
-    } else {
-        (viewport_h - panel_h - MARGIN).max(MARGIN)
-    };
-
-    let max_left = (viewport_w - panel_w - MARGIN).max(MARGIN);
-    let left = (target_rect.left() + (target_rect.width() - panel_w) / 2.0).clamp(MARGIN, max_left);
-
-    let _ = style.set_property("top", &format!("{top}px"));
-    let _ = style.set_property("left", &format!("{left}px"));
-}
-
 // Helper to copy text asynchronously using JS Clipboard API
 async fn copy_to_clipboard_async(text: String) -> Result<(), JsValue> {
     let window = web_sys::window().ok_or_else(|| JsValue::from_str("No window available"))?;
@@ -448,8 +380,34 @@ enum Msg {
     TutorialStart,
     TutorialNext,
     TutorialPrev,
+    TutorialJump(usize),
     TutorialSkip,
     TutorialFinish,
+    // `u32` on every demo message is the `demo_gen` it was scheduled under —
+    // see `schedule_tour_demo` for why a stale one is a silent no-op.
+    DemoTypeName(u32, usize),
+    DemoSelectCategory(u32),
+    DemoToggleItem(u32, &'static str),
+    DemoPulseCopyOff(u32),
+    DemoCheckDoc(u32, usize),
+    DismissHistoryCoach,
+    DismissShortcutCoach,
+}
+
+/// Snapshot of the three form fields (plus the incidental filter/checklist
+/// state) taken the moment the tour opens, so a demo that types/selects its
+/// way through the fields can be undone verbatim on skip/finish rather than
+/// hard-clearing whatever the user had already filled in. Any *real* edit the
+/// user makes while the tour is running is written straight into the
+/// snapshot too (see the Update* handlers), so a manual edit always survives
+/// tour close instead of being reverted along with the demo's.
+#[derive(Clone, Default)]
+struct FormSnapshot {
+    name: String,
+    category: Option<String>,
+    items: Vec<String>,
+    group_tab: String,
+    checked_docs: HashSet<u8>,
 }
 
 struct App {
@@ -473,11 +431,21 @@ struct App {
     // Which step's target has already been scrolled into view, so `rendered`
     // only scrolls once per step change rather than on every re-render.
     tutorial_scrolled_step: Option<usize>,
-    tutorial_panel_ref: NodeRef,
-    // Re-runs `position_tutorial_panel` once the target's smooth scroll (see
-    // `rendered`) has settled, so the panel corrects onto its final resting
-    // spot instead of staying pinned to the pre-scroll rect.
-    tutorial_reposition_timeout: Option<Timeout>,
+    // Taken when the tour opens (`Some`), restored and cleared on skip/finish.
+    tour_snapshot: Option<FormSnapshot>,
+    // Bumped on every step change and on every real (non-demo) field edit;
+    // each scheduled demo message carries the generation it was scheduled
+    // under and is a no-op if that no longer matches, which is how a step
+    // change or a manual edit cancels in-flight demo timers without needing
+    // to track and drop a `Timeout` handle per tick.
+    demo_gen: u32,
+    demo_copy_pulse: bool,
+    // "Seen once" coach marks for the two features the tour no longer walks
+    // through step-by-step — shown the first time they'd actually be useful
+    // (history has an entry / the form is complete) rather than during the
+    // tour, and persisted so dismissing one is permanent.
+    history_coach_dismissed: bool,
+    shortcut_coach_dismissed: bool,
     name_ref: NodeRef,
     // Set when something should hand focus back to the name input on the next
     // render (see `rendered`); first render focuses unconditionally.
@@ -520,6 +488,8 @@ impl Component for App {
             .collect();
 
         let tutorial_seen: bool = LocalStorage::get::<bool>("medgen_tutorial_seen").unwrap_or(false);
+        let history_coach_dismissed: bool = LocalStorage::get::<bool>("medgen_history_coach_seen").unwrap_or(false);
+        let shortcut_coach_dismissed: bool = LocalStorage::get::<bool>("medgen_shortcut_coach_seen").unwrap_or(false);
 
         // Keydown shortcut setup (Ctrl + Enter to copy, Escape to close the tour)
         let link = ctx.link().clone();
@@ -580,8 +550,13 @@ impl Component for App {
             tutorial_step: if tutorial_seen { None } else { Some(0) },
             tutorial_seen,
             tutorial_scrolled_step: None,
-            tutorial_panel_ref: NodeRef::default(),
-            tutorial_reposition_timeout: None,
+            // The auto-launched first-visit tour opens over a guaranteed-blank
+            // form, so the default (empty) snapshot is already correct here.
+            tour_snapshot: if tutorial_seen { None } else { Some(FormSnapshot::default()) },
+            demo_gen: 0,
+            demo_copy_pulse: false,
+            history_coach_dismissed,
+            shortcut_coach_dismissed,
             name_ref: NodeRef::default(),
             focus_name_pending: false,
             suppress_focus_suggestions: false,
@@ -601,17 +576,20 @@ impl Component for App {
         match msg {
             Msg::UpdateName(name) => {
                 self.applicant_name = name;
+                self.interrupt_demo();
                 self.schedule_auto_copy(ctx);
                 true
             }
             Msg::ClearName => {
                 self.applicant_name.clear();
+                self.interrupt_demo();
                 self.schedule_auto_copy(ctx);
                 true
             }
             Msg::SelectCategory(cat_id) => {
                 self.selected_category = Some(cat_id);
                 self.selected_items.clear();
+                self.interrupt_demo();
                 self.schedule_auto_copy(ctx);
                 true
             }
@@ -621,23 +599,29 @@ impl Component for App {
                 } else {
                     self.selected_items.push(item_id);
                 }
+                self.interrupt_demo();
                 self.schedule_auto_copy(ctx);
                 true
             }
             Msg::SelectTab(tab) => {
                 self.selected_group_tab = tab;
+                self.interrupt_demo();
                 true
             }
             Msg::ToggleDoc(code) => {
                 if !self.checked_docs.remove(&code) {
                     self.checked_docs.insert(code);
                 }
+                self.interrupt_demo();
                 true
             }
             Msg::CopyText => {
-                // The tour is "look, don't touch" — its spotlighted target is
-                // visually raised above the backdrop but shouldn't trigger a
-                // real copy of whatever (likely incomplete) state is behind it.
+                // The tour still owns the fields — allowing typing/selecting
+                // during it is the point (see the module doc for `FormSnapshot`)
+                // — but a real clipboard write of whatever the demo currently
+                // has on screen (or of the user's still-mid-edit real data)
+                // isn't something either side asked for, so this stays inert
+                // for the duration of the tour.
                 if self.tutorial_step.is_some() {
                     return false;
                 }
@@ -805,6 +789,7 @@ impl Component for App {
                 self.selected_items.clear();
                 self.selected_group_tab = "全部".to_string();
                 self.checked_docs.clear();
+                self.interrupt_demo();
                 self.schedule_auto_copy(ctx);
                 self.toast = Some(ToastState {
                     message: "已清除所有選擇".to_string(),
@@ -833,6 +818,7 @@ impl Component for App {
                 self.name_suggestions_open = false;
                 if !name.is_empty() {
                     self.applicant_name = name;
+                    self.interrupt_demo();
                     self.schedule_auto_copy(ctx);
                 }
                 true
@@ -873,14 +859,24 @@ impl Component for App {
                 true
             }
             Msg::TutorialStart => {
+                self.tour_snapshot = Some(FormSnapshot {
+                    name: self.applicant_name.clone(),
+                    category: self.selected_category.clone(),
+                    items: self.selected_items.clone(),
+                    group_tab: self.selected_group_tab.clone(),
+                    checked_docs: self.checked_docs.clone(),
+                });
                 self.tutorial_step = Some(0);
                 self.tutorial_scrolled_step = None;
+                self.schedule_tour_demo(ctx, 0);
                 true
             }
             Msg::TutorialNext => {
                 if let Some(cur) = self.tutorial_step {
                     if let Some(next) = self.tutorial_next_index(cur) {
                         self.tutorial_step = Some(next);
+                        self.tutorial_scrolled_step = None;
+                        self.schedule_tour_demo(ctx, next);
                     }
                 }
                 true
@@ -889,22 +885,28 @@ impl Component for App {
                 if let Some(cur) = self.tutorial_step {
                     if let Some(prev) = self.tutorial_prev_index(cur) {
                         self.tutorial_step = Some(prev);
+                        self.tutorial_scrolled_step = None;
+                        self.schedule_tour_demo(ctx, prev);
                     }
+                }
+                true
+            }
+            Msg::TutorialJump(idx) => {
+                if idx < TUTORIAL_STEPS.len() {
+                    self.tutorial_step = Some(idx);
+                    self.tutorial_scrolled_step = None;
+                    self.schedule_tour_demo(ctx, idx);
                 }
                 true
             }
             Msg::TutorialSkip => {
                 // Idempotent on purpose — it's the unconditional target of the
                 // global Escape key, whether or not a tour happens to be open.
-                self.tutorial_step = None;
-                self.tutorial_seen = true;
-                let _ = LocalStorage::set("medgen_tutorial_seen", &true);
+                self.close_tour(ctx);
                 true
             }
             Msg::TutorialFinish => {
-                self.tutorial_step = None;
-                self.tutorial_seen = true;
-                let _ = LocalStorage::set("medgen_tutorial_seen", &true);
+                self.close_tour(ctx);
                 self.toast = Some(ToastState {
                     message: "教學結束，祝使用順利！".to_string(),
                     is_error: false,
@@ -912,17 +914,71 @@ impl Component for App {
                 self.schedule_toast_clear(ctx);
                 true
             }
+            Msg::DemoTypeName(gen, chars_typed) => {
+                if gen != self.demo_gen {
+                    return false;
+                }
+                self.applicant_name = TOUR_DEMO_NAME.chars().take(chars_typed).collect();
+                if chars_typed < TOUR_DEMO_NAME.chars().count() {
+                    let link = ctx.link().clone();
+                    Timeout::new(200, move || link.send_message(Msg::DemoTypeName(gen, chars_typed + 1))).forget();
+                }
+                true
+            }
+            Msg::DemoSelectCategory(gen) => {
+                if gen != self.demo_gen {
+                    return false;
+                }
+                self.selected_category = Some(TOUR_DEMO_CATEGORY.to_string());
+                self.selected_items.clear();
+                true
+            }
+            Msg::DemoToggleItem(gen, item_id) => {
+                if gen != self.demo_gen {
+                    return false;
+                }
+                if !self.selected_items.iter().any(|x| x == item_id) {
+                    self.selected_items.push(item_id.to_string());
+                }
+                true
+            }
+            Msg::DemoPulseCopyOff(gen) => {
+                if gen != self.demo_gen {
+                    return false;
+                }
+                self.demo_copy_pulse = false;
+                true
+            }
+            Msg::DemoCheckDoc(gen, which) => {
+                if gen != self.demo_gen {
+                    return false;
+                }
+                let docs = required_doc_codes(&self.selected_items, &self.selected_category);
+                if let Some(&code) = docs.get(which) {
+                    self.checked_docs.insert(code);
+                }
+                true
+            }
+            Msg::DismissHistoryCoach => {
+                self.history_coach_dismissed = true;
+                let _ = LocalStorage::set("medgen_history_coach_seen", &true);
+                true
+            }
+            Msg::DismissShortcutCoach => {
+                self.shortcut_coach_dismissed = true;
+                let _ = LocalStorage::set("medgen_shortcut_coach_seen", &true);
+                true
+            }
         }
     }
 
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
         if let Some(idx) = self.tutorial_step {
-            let target_id = TUTORIAL_STEPS
-                .get(idx)
-                .and_then(|step| step.target_id(is_desktop_viewport()));
-
             if self.tutorial_scrolled_step != Some(idx) {
                 self.tutorial_scrolled_step = Some(idx);
+                let target_id = TUTORIAL_STEPS
+                    .get(idx)
+                    .and_then(|step| step.target_id(is_desktop_viewport()));
                 if let Some(id) = target_id {
                     if let Some(el) = web_sys::window()
                         .and_then(|w| w.document())
@@ -930,21 +986,15 @@ impl Component for App {
                     {
                         let opts = web_sys::ScrollIntoViewOptions::new();
                         opts.set_behavior(web_sys::ScrollBehavior::Smooth);
-                        opts.set_block(web_sys::ScrollLogicalPosition::Start);
+                        // Centered rather than Start: the panel now renders as
+                        // part of the target (nested below/above it), so it
+                        // extends past the target's own box and Start could
+                        // leave it hanging off the bottom of the viewport.
+                        opts.set_block(web_sys::ScrollLogicalPosition::Center);
                         el.scroll_into_view_with_scroll_into_view_options(&opts);
                     }
                 }
             }
-
-            // Place the panel against the target's current rect immediately
-            // (already correct if no scroll was needed), then correct once
-            // more after the smooth scroll above has had time to settle.
-            position_tutorial_panel(&self.tutorial_panel_ref, target_id);
-            let panel_ref = self.tutorial_panel_ref.clone();
-            let target_id_owned = target_id.map(str::to_string);
-            self.tutorial_reposition_timeout = Some(Timeout::new(350, move || {
-                position_tutorial_panel(&panel_ref, target_id_owned.as_deref());
-            }));
         }
 
         if !first_render && !self.focus_name_pending {
@@ -952,9 +1002,11 @@ impl Component for App {
         }
         self.focus_name_pending = false;
 
-        // The tour is "look, don't touch" — don't hand real keyboard focus to
-        // a field sitting underneath the dimmed backdrop just because this is
-        // the first render (the tour can auto-launch on the very same frame).
+        // Fields stay interactive during the tour, but grabbing real keyboard
+        // focus out from under whatever the user is looking at just because
+        // this happens to be the first render (the tour can auto-launch on
+        // that very frame) would still be rude — the demo drives the name
+        // field's value directly without needing focus.
         if self.tutorial_step.is_some() || !is_desktop_viewport() {
             return;
         }
@@ -1038,32 +1090,38 @@ impl Component for App {
         let docs_checked_count = doc_codes.iter().filter(|c| self.checked_docs.contains(c)).count();
 
         // ─── Tutorial spotlight ───
-        // `is_target` drives the `.tutorial-target` class on the handful of
-        // elements the tour can point at; `nav_lifted`/`mobile_bar_lifted`
-        // counter the fact that `.nav`/`.mobile-bar` are themselves stacking
-        // contexts (they set both `position` and `z-index`), so a spotlighted
-        // descendant's z-index is only compared *within* that context unless
-        // the context itself is also raised above the backdrop.
+        // The current step's semantic target (if any) drives the
+        // `.tutorial-target` ring on whichever card it names, and the nested
+        // panel is rendered as that same card's last child (see the
+        // `.tutorial-target` CSS comment for why that makes `position:
+        // absolute` work with no JS measurement). `mobile_bar_lifted` counters
+        // `.mobile-bar` being its own stacking context (`position: fixed` +
+        // `z-index`), so its spotlighted button's raised z-index would
+        // otherwise be capped within it.
         let is_desktop = is_desktop_viewport();
-        let tutorial_target: Option<&'static str> = self
-            .tutorial_step
-            .and_then(|idx| TUTORIAL_STEPS.get(idx))
-            .and_then(|step| step.target_id(is_desktop));
-        let is_target = |id: &str| tutorial_target == Some(id);
-        let nav_lifted = matches!(tutorial_target, Some("historyBtn") | Some("resetBtn") | Some("installBtn"));
-        let mobile_bar_lifted = matches!(tutorial_target, Some("mobileCopyBtn") | Some("mobilePreview"));
+        let tour_idx = self.tutorial_step;
+        let tour_kind: Option<TourTarget> = tour_idx.and_then(|i| TUTORIAL_STEPS.get(i)).and_then(|s| s.target);
+        let is_name_target = tour_kind == Some(TourTarget::Name);
+        let is_category_target = tour_kind == Some(TourTarget::Category);
+        let is_items_target = tour_kind == Some(TourTarget::Items);
+        let is_copy_target = tour_kind == Some(TourTarget::Copy);
+        let is_docs_target = tour_kind == Some(TourTarget::Docs);
+        let mobile_bar_lifted = is_copy_target && !is_desktop;
+
+        let show_history_coach = !self.copy_history.is_empty() && tour_idx.is_none() && !self.history_coach_dismissed;
+        let show_shortcut_coach = is_complete && tour_idx.is_none() && !self.shortcut_coach_dismissed;
 
         html! {
             <div class="app-shell">
                 // ─── Header ───
-                <header class={classes!("nav", nav_lifted.then_some("tutorial-lift"))}>
+                <header class="nav">
                     <span class="nav-brand">{"醫事人員執業異動文字產生器"}</span>
                     <div class="nav-actions">
                         {if self.deferred_prompt.is_some() {
                             html! {
                                 <button
                                     id="installBtn"
-                                    class={classes!("btn", "btn-secondary", is_target("installBtn").then_some("tutorial-target"))}
+                                    class="btn btn-secondary"
                                     onclick={ctx.link().callback(|_| Msg::TriggerInstall)}
                                     aria-label="安裝應用"
                                 >
@@ -1078,25 +1136,37 @@ impl Component for App {
                         } else {
                             html! {}
                         }}
-                        <button
-                            id="historyBtn"
-                            class={classes!("btn", "btn-icon", "btn-secondary", "history-btn", is_target("historyBtn").then_some("tutorial-target"))}
-                            onclick={ctx.link().callback(|_| Msg::ToggleHistory)}
-                            aria-label="複製紀錄"
-                        >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="12 8 12 12 14 14"/>
-                                <circle cx="12" cy="12" r="10"/>
-                            </svg>
-                            {if !self.copy_history.is_empty() {
-                                html! { <span class="history-badge">{self.copy_history.len()}</span> }
+                        <div class="coach-anchor">
+                            <button
+                                id="historyBtn"
+                                class="btn btn-icon btn-secondary history-btn"
+                                onclick={ctx.link().callback(|_| Msg::ToggleHistory)}
+                                aria-label="複製紀錄"
+                            >
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="12 8 12 12 14 14"/>
+                                    <circle cx="12" cy="12" r="10"/>
+                                </svg>
+                                {if !self.copy_history.is_empty() {
+                                    html! { <span class="history-badge">{self.copy_history.len()}</span> }
+                                } else {
+                                    html! {}
+                                }}
+                            </button>
+                            {if show_history_coach {
+                                html! {
+                                    <div class="coach-mark coach-mark-history">
+                                        <p class="coach-mark-text">{"點這裡可以看最近複製過的紀錄，點一下就能重新複製。"}</p>
+                                        <button type="button" class="coach-mark-dismiss" onclick={ctx.link().callback(|_| Msg::DismissHistoryCoach)}>{"知道了"}</button>
+                                    </div>
+                                }
                             } else {
                                 html! {}
                             }}
-                        </button>
+                        </div>
                         <button
                             id="resetBtn"
-                            class={classes!("btn", "btn-icon", "btn-secondary", is_target("resetBtn").then_some("tutorial-target"))}
+                            class="btn btn-icon btn-secondary"
                             onclick={ctx.link().callback(|_| Msg::ResetAll)}
                             aria-label="清除重填"
                         >
@@ -1127,7 +1197,7 @@ impl Component for App {
                     <div class="col-input">
 
                         // STEP 01 — name
-                        <section id="nameCard" class={classes!("card", "anim-in", is_target("nameCard").then_some("tutorial-target"))} aria-label="輸入申請人姓名">
+                        <section id="nameCard" class={classes!("card", "anim-in", is_name_target.then_some("tutorial-target"))} aria-label="輸入申請人姓名">
                             <div class="card-head">
                                 <div>
                                     <div class="card-kicker">{"STEP 01"}</div>
@@ -1187,10 +1257,11 @@ impl Component for App {
                                     html! {}
                                 }}
                             </div>
+                            {if is_name_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-below") } else { html! {} }}
                         </section>
 
                         // STEP 02 — category
-                        <section id="categoryCard" class={classes!("card", "anim-in", "anim-in-2", is_target("categoryCard").then_some("tutorial-target"))} aria-label="選擇申請類別">
+                        <section id="categoryCard" class={classes!("card", "anim-in", "anim-in-2", is_category_target.then_some("tutorial-target"))} aria-label="選擇申請類別">
                             <div class="card-head">
                                 <div>
                                     <div class="card-kicker">{"STEP 02"}</div>
@@ -1233,10 +1304,11 @@ impl Component for App {
                                     }
                                 })}
                             </div>
+                            {if is_category_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-below") } else { html! {} }}
                         </section>
 
                         // STEP 03 — items
-                        <section id="itemsCard" class={classes!("card", "anim-in", "anim-in-3", is_target("itemsCard").then_some("tutorial-target"))} aria-label="選擇申請項目">
+                        <section id="itemsCard" class={classes!("card", "anim-in", "anim-in-3", is_items_target.then_some("tutorial-target"))} aria-label="選擇申請項目">
                             <div class="card-head">
                                 <div>
                                     <div class="card-kicker">{"STEP 03"}</div>
@@ -1275,13 +1347,14 @@ impl Component for App {
                                     }
                                 })}
                             </div>
+                            {if is_items_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-below") } else { html! {} }}
                         </section>
                     </div>
 
                     // ─── Preview column ───
-                    <div class="col-preview anim-in anim-in-4">
+                    <div class={classes!("col-preview", "anim-in", "anim-in-4", ((is_copy_target && is_desktop) || is_docs_target).then_some("tutorial-lift"))}>
 
-                        <section class="card">
+                        <section id="resultCard" class={classes!("card", (is_copy_target && is_desktop).then_some("tutorial-target"))}>
                             <div class="card-head card-head-center">
                                 <div class="card-title">{"產生結果"}</div>
                                 <span class={if is_complete { "tag tag-accent" } else { "tag tag-neutral" }}>
@@ -1290,47 +1363,56 @@ impl Component for App {
                             </div>
                             <div class="hr hr-tight"></div>
                             <div class="preview-box">
-                                <p
-                                    id="outputResult"
-                                    class={classes!(
-                                        "preview-text",
-                                        (!show_result).then_some("placeholder"),
-                                        is_target("outputResult").then_some("tutorial-target")
-                                    )}
-                                >
+                                <p id="outputResult" class={classes!("preview-text", (!show_result).then_some("placeholder"))}>
                                     {desktop_preview_text}
                                 </p>
                             </div>
-                            <button
-                                class={classes!("btn", "btn-block", "btn-copy", is_target("desktopCopyBtn").then_some("tutorial-target"))}
-                                id="desktopCopyBtn"
-                                disabled={!is_complete}
-                                onclick={ctx.link().callback(|_| Msg::CopyText)}
-                            >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    {if self.copied_morph {
-                                        html! { <path d="M5 13l4 4L19 7"/> }
-                                    } else {
-                                        html! {
-                                            <>
-                                                <rect x="9" y="9" width="13" height="13" rx="1"/>
-                                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                            </>
-                                        }
-                                    }}
-                                </svg>
-                                {if self.copied_morph { "已複製！" } else { "複製文字" }}
-                            </button>
-                            <div id="shortcutHint" class={classes!("shortcut-hint", is_target("shortcutHint").then_some("tutorial-target"))}>
-                                <span class="key-cap">{"Ctrl"}</span>
-                                <span>{"+"}</span>
-                                <span class="key-cap">{"Enter"}</span>
-                                <span>{"快速複製"}</span>
+                            <div class="copy-btn-anchor">
+                                {if self.demo_copy_pulse { html! { <div class="copy-pulse-ring"></div> } } else { html! {} }}
+                                <button
+                                    class="btn btn-block btn-copy"
+                                    id="desktopCopyBtn"
+                                    disabled={!is_complete}
+                                    onclick={ctx.link().callback(|_| Msg::CopyText)}
+                                >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        {if self.copied_morph {
+                                            html! { <path d="M5 13l4 4L19 7"/> }
+                                        } else {
+                                            html! {
+                                                <>
+                                                    <rect x="9" y="9" width="13" height="13" rx="1"/>
+                                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                                </>
+                                            }
+                                        }}
+                                    </svg>
+                                    {if self.copied_morph { "已複製！" } else { "複製文字" }}
+                                </button>
                             </div>
+                            <div class="coach-anchor">
+                                <div id="shortcutHint" class="shortcut-hint">
+                                    <span class="key-cap">{"Ctrl"}</span>
+                                    <span>{"+"}</span>
+                                    <span class="key-cap">{"Enter"}</span>
+                                    <span>{"快速複製"}</span>
+                                </div>
+                                {if show_shortcut_coach {
+                                    html! {
+                                        <div class="coach-mark coach-mark-shortcut">
+                                            <p class="coach-mark-text">{"填完三個欄位後，直接按 Ctrl（Mac 為 ⌘）+ Enter 也能快速複製。"}</p>
+                                            <button type="button" class="coach-mark-dismiss" onclick={ctx.link().callback(|_| Msg::DismissShortcutCoach)}>{"知道了"}</button>
+                                        </div>
+                                    }
+                                } else {
+                                    html! {}
+                                }}
+                            </div>
+                            {if is_copy_target && is_desktop { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-below") } else { html! {} }}
                         </section>
 
                         // 應備文件檢核表 — derived from the selected 申請項目
-                        <section id="docsCard" class={classes!("card", "docs-card", is_target("docsCard").then_some("tutorial-target"))} aria-label="應備文件檢核表">
+                        <section id="docsCard" class={classes!("card", "docs-card", is_docs_target.then_some("tutorial-target"))} aria-label="應備文件檢核表">
                             <div class="card-head card-head-center">
                                 <div class="card-title">{"應備文件檢核表"}</div>
                                 {if doc_codes.is_empty() {
@@ -1376,6 +1458,7 @@ impl Component for App {
                                     </div>
                                 }
                             }}
+                            {if is_docs_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-above") } else { html! {} }}
                         </section>
 
                         <section
@@ -1452,21 +1535,18 @@ impl Component for App {
                 <div class={classes!("mobile-bar", mobile_bar_lifted.then_some("tutorial-lift"))}>
                     <div
                         id="mobilePreview"
-                        class={classes!(
-                            if !show_result {
-                                "mobile-preview placeholder"
-                            } else if is_complete {
-                                "mobile-preview ready"
-                            } else {
-                                "mobile-preview"
-                            },
-                            is_target("mobilePreview").then_some("tutorial-target")
-                        )}
+                        class={if !show_result {
+                            "mobile-preview placeholder"
+                        } else if is_complete {
+                            "mobile-preview ready"
+                        } else {
+                            "mobile-preview"
+                        }}
                     >
                         {mobile_preview_text}
                     </div>
                     <button
-                        class={classes!("btn", "btn-copy", "mobile-copy-btn", is_target("mobileCopyBtn").then_some("tutorial-target"))}
+                        class={classes!("btn", "btn-copy", "mobile-copy-btn", (is_copy_target && !is_desktop).then_some("tutorial-target"))}
                         id="mobileCopyBtn"
                         disabled={!is_complete}
                         onclick={ctx.link().callback(|_| Msg::CopyText)}
@@ -1485,6 +1565,7 @@ impl Component for App {
                         </svg>
                         {if self.copied_morph { "已複製！" } else { "複製文字" }}
                     </button>
+                    {if is_copy_target && !is_desktop { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-above tutorial-panel-mobile-copy") } else { html! {} }}
                 </div>
 
                 // ─── Toast ───
@@ -1509,7 +1590,23 @@ impl Component for App {
                 }}
 
                 // ─── Tutorial overlay ───
-                {self.view_tutorial(ctx, is_desktop)}
+                // Per-target panels are rendered inline next to their card
+                // above; only the no-target (welcome/finish) steps use this
+                // fixed, viewport-centered one.
+                {if tour_idx.is_some() {
+                    html! { <div class="tutorial-backdrop" onclick={ctx.link().callback(|_| Msg::TutorialSkip)}></div> }
+                } else {
+                    html! {}
+                }}
+                {if tour_kind.is_none() {
+                    if let Some(idx) = tour_idx {
+                        self.view_tour_panel(ctx, idx, "tutorial-panel-centered")
+                    } else {
+                        html! {}
+                    }
+                } else {
+                    html! {}
+                }}
             </div>
         }
     }
@@ -1547,91 +1644,164 @@ impl App {
         }));
     }
 
-    fn tutorial_step_visible(&self, idx: usize) -> bool {
-        TUTORIAL_STEPS
-            .get(idx)
-            .map_or(false, |s| s.is_visible(is_desktop_viewport(), self.deferred_prompt.is_some()))
-    }
-
     fn tutorial_next_index(&self, from: usize) -> Option<usize> {
-        ((from + 1)..TUTORIAL_STEPS.len()).find(|&i| self.tutorial_step_visible(i))
+        (from + 1 < TUTORIAL_STEPS.len()).then_some(from + 1)
     }
 
     fn tutorial_prev_index(&self, from: usize) -> Option<usize> {
-        (0..from).rev().find(|&i| self.tutorial_step_visible(i))
+        (from > 0).then_some(from - 1)
     }
 
-    fn view_tutorial(&self, ctx: &Context<Self>, is_desktop: bool) -> Html {
-        let idx = match self.tutorial_step {
-            Some(idx) => idx,
-            None => return html! {},
-        };
-        let step = match TUTORIAL_STEPS.get(idx) {
-            Some(step) => step,
-            None => return html! {},
-        };
+    /// Cancels whatever demo tick is in flight (by invalidating `demo_gen`,
+    /// see the enum's doc comment on the `Demo*` messages) and, if the tour
+    /// is open, folds the just-made real edit into `tour_snapshot` so it
+    /// survives `close_tour`'s restore instead of being reverted along with
+    /// whatever the demo was doing. Called from every handler that lets the
+    /// user genuinely edit a field, tour or not — a no-op outside the tour
+    /// since there's nothing scheduled and no snapshot to update.
+    fn interrupt_demo(&mut self) {
+        self.demo_gen = self.demo_gen.wrapping_add(1);
+        self.demo_copy_pulse = false;
+        if let Some(snap) = self.tour_snapshot.as_mut() {
+            snap.name = self.applicant_name.clone();
+            snap.category = self.selected_category.clone();
+            snap.items = self.selected_items.clone();
+            snap.group_tab = self.selected_group_tab.clone();
+            snap.checked_docs = self.checked_docs.clone();
+        }
+    }
 
-        let install_available = self.deferred_prompt.is_some();
-        let visible_count = TUTORIAL_STEPS
-            .iter()
-            .filter(|s| s.is_visible(is_desktop, install_available))
-            .count();
-        let position = TUTORIAL_STEPS[..=idx]
-            .iter()
-            .filter(|s| s.is_visible(is_desktop, install_available))
-            .count();
-        let has_prev = self.tutorial_prev_index(idx).is_some();
-        let is_last = self.tutorial_next_index(idx).is_none();
-        let has_target = step.target_id(is_desktop).is_some();
+    /// Ends the tour (skip or finish) and restores whatever was in the three
+    /// fields before it opened — see the `FormSnapshot` doc comment for why
+    /// that's preferable to the imported design's own hard-clear-to-blank.
+    fn close_tour(&mut self, ctx: &Context<Self>) {
+        self.demo_gen = self.demo_gen.wrapping_add(1);
+        self.demo_copy_pulse = false;
+        self.tutorial_step = None;
+        self.tutorial_seen = true;
+        let _ = LocalStorage::set("medgen_tutorial_seen", &true);
+        if let Some(snap) = self.tour_snapshot.take() {
+            self.applicant_name = snap.name;
+            self.selected_category = snap.category;
+            self.selected_items = snap.items;
+            self.selected_group_tab = snap.group_tab;
+            self.checked_docs = snap.checked_docs;
+        }
+        self.schedule_auto_copy(ctx);
+    }
+
+    /// Kicks off the new step's "watch it happen" demo. Bumps `demo_gen`
+    /// first (invalidating any tick still scheduled from the previous step),
+    /// then, for steps that have one, schedules the demo under the new
+    /// generation — each fired `Demo*` message re-checks the generation it
+    /// was scheduled under and silently no-ops if a later step change or a
+    /// real user edit has since moved on, which is what lets a fire-and-forget
+    /// `Timeout` (see `gloo_timers`) stand in for a cancellable one here.
+    fn schedule_tour_demo(&mut self, ctx: &Context<Self>, idx: usize) {
+        self.demo_gen = self.demo_gen.wrapping_add(1);
+        self.demo_copy_pulse = false;
+        let gen = self.demo_gen;
+        let Some(step) = TUTORIAL_STEPS.get(idx) else { return };
+        let link = ctx.link().clone();
+        match step.target {
+            None => {}
+            Some(TourTarget::Name) => {
+                self.applicant_name.clear();
+                Timeout::new(400, move || link.send_message(Msg::DemoTypeName(gen, 1))).forget();
+            }
+            Some(TourTarget::Category) => {
+                Timeout::new(500, move || link.send_message(Msg::DemoSelectCategory(gen))).forget();
+            }
+            Some(TourTarget::Items) => {
+                let link2 = link.clone();
+                Timeout::new(500, move || link2.send_message(Msg::DemoToggleItem(gen, TOUR_DEMO_ITEMS[0]))).forget();
+                Timeout::new(1200, move || link.send_message(Msg::DemoToggleItem(gen, TOUR_DEMO_ITEMS[1]))).forget();
+            }
+            Some(TourTarget::Copy) => {
+                self.demo_copy_pulse = true;
+                Timeout::new(1800, move || link.send_message(Msg::DemoPulseCopyOff(gen))).forget();
+            }
+            Some(TourTarget::Docs) => {
+                let link2 = link.clone();
+                Timeout::new(500, move || link2.send_message(Msg::DemoCheckDoc(gen, 0))).forget();
+                Timeout::new(1200, move || link.send_message(Msg::DemoCheckDoc(gen, 1))).forget();
+            }
+        }
+    }
+
+    /// Renders one tour panel: the shared card (progress, close, title, body,
+    /// step dots, prev/next-or-finish) wrapped in `placement_class`, which
+    /// picks its position — `tutorial-panel-centered` (fixed, viewport-
+    /// centered, used for the no-target intro/outro steps) or
+    /// `tutorial-panel-below`/`-above` (absolute, nested inside the
+    /// spotlighted card itself so it needs no JS positioning at all).
+    fn view_tour_panel(&self, ctx: &Context<Self>, idx: usize, placement_class: &'static str) -> Html {
+        let Some(step) = TUTORIAL_STEPS.get(idx) else { return html! {} };
+        let total = TUTORIAL_STEPS.len();
+        let is_first = idx == 0;
+        let is_last = idx == total - 1;
+        let next_label = if is_first { "開始導覽" } else { "下一步" };
 
         html! {
-            <>
-                <div class="tutorial-backdrop" onclick={ctx.link().callback(|_| Msg::TutorialSkip)}></div>
-                <div
-                    ref={self.tutorial_panel_ref.clone()}
-                    class={classes!("tutorial-panel", "anim-in", if has_target { "tutorial-panel-anchored" } else { "tutorial-panel-centered" })}
-                    role="dialog" aria-modal="true" aria-label="操作教學"
-                >
-                    <div class="tutorial-panel-head">
-                        <span class="tutorial-progress">{format!("{} / {}", position, visible_count)}</span>
-                        <button
-                            type="button"
-                            class="tutorial-close"
-                            onclick={ctx.link().callback(|_| Msg::TutorialSkip)}
-                            aria-label="跳過教學"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-                                <path d="M18 6L6 18M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="tutorial-title">{step.title}</div>
-                    <p class="tutorial-body">{step.body}</p>
-                    <div class="tutorial-controls">
-                        <button
-                            type="button"
-                            class="btn btn-secondary"
-                            disabled={!has_prev}
-                            onclick={ctx.link().callback(|_| Msg::TutorialPrev)}
-                        >
-                            {"上一步"}
-                        </button>
-                        {if is_last {
-                            html! {
-                                <button type="button" class="btn btn-primary" onclick={ctx.link().callback(|_| Msg::TutorialFinish)}>
-                                    {"完成"}
-                                </button>
-                            }
-                        } else {
-                            html! {
-                                <button type="button" class="btn btn-primary" onclick={ctx.link().callback(|_| Msg::TutorialNext)}>
-                                    {"下一步"}
-                                </button>
-                            }
-                        }}
-                    </div>
+            <div class={classes!("tutorial-panel", placement_class)} role="dialog" aria-modal="true" aria-label="操作教學">
+                <div class="tutorial-panel-head">
+                    <span class="tutorial-progress">{format!("{} / {}", idx + 1, total)}</span>
+                    <button
+                        type="button"
+                        class="tutorial-close"
+                        onclick={ctx.link().callback(|_| Msg::TutorialSkip)}
+                        aria-label="跳過教學"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
                 </div>
-            </>
+                <div class="tutorial-title">{step.title}</div>
+                <p class="tutorial-body">{step.body}</p>
+                {if step.target.is_some() {
+                    html! { <p class="tutorial-note">{"畫面正在自動示範這個步驟，操作結束後可以自行修改。"}</p> }
+                } else {
+                    html! {}
+                }}
+                <div class="tutorial-dots">
+                    {for (0..total).map(|i| {
+                        let active = i == idx;
+                        html! {
+                            <button
+                                type="button"
+                                class={if active { "tutorial-dot active" } else { "tutorial-dot" }}
+                                aria-label="跳到步驟"
+                                onclick={ctx.link().callback(move |_| Msg::TutorialJump(i))}
+                            ></button>
+                        }
+                    })}
+                </div>
+                <div class="tutorial-controls">
+                    {if is_first {
+                        html! { <div class="tutorial-controls-spacer"></div> }
+                    } else {
+                        html! {
+                            <button type="button" class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::TutorialPrev)}>
+                                {"上一步"}
+                            </button>
+                        }
+                    }}
+                    {if is_last {
+                        html! {
+                            <button type="button" class="btn btn-primary" onclick={ctx.link().callback(|_| Msg::TutorialFinish)}>
+                                {"完成"}
+                            </button>
+                        }
+                    } else {
+                        html! {
+                            <button type="button" class="btn btn-primary" onclick={ctx.link().callback(|_| Msg::TutorialNext)}>
+                                {next_label}
+                            </button>
+                        }
+                    }}
+                </div>
+            </div>
         }
     }
 }

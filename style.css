@@ -646,11 +646,16 @@ img { display: block; max-width: 100%; }
 
 /* ═══════════════════════════════════════
    Tutorial overlay
-   z-index 1000+ — above .toast-wrap (999), the previous ceiling. `.nav` and
-   `.mobile-bar` each set their own position+z-index, so they form their own
-   stacking contexts; a spotlighted descendant inside either one is capped
-   within that context unless the context itself is also raised via
-   `.tutorial-lift`, which is why that lift value must clear 1000 too.
+   z-index 1000+ — above .toast-wrap (999), the previous ceiling. Fields stay
+   fully interactive during the tour (typing/selecting takes over from the
+   demo immediately, see `interrupt_demo` in main.rs) — only the backdrop and
+   the spotlighted card's ring are purely visual. `.mobile-bar` (fixed) and
+   `.col-preview` (sticky) each set their own position, forming their own
+   stacking context, so a spotlighted descendant's raised z-index is only
+   compared *within* that context unless the context itself is also raised
+   via `.tutorial-lift` — which is why `resultCard`/`docsCard` (both inside
+   `.col-preview`) need it even though their own `.tutorial-target` z-index
+   already outranks the backdrop's.
    ═══════════════════════════════════════ */
 .tutorial-backdrop {
     position: fixed;
@@ -665,59 +670,68 @@ img { display: block; max-width: 100%; }
     outline-offset: 3px;
     box-shadow: var(--shadow-lg), 0 0 0 8px color-mix(in srgb, var(--color-accent) 22%, transparent);
     /* No background override here — every target already has its own opaque
-       background (`.card`, `.btn-copy`, its `.nav`/`.mobile-bar` ancestor…),
-       and forcing one here previously stomped colored buttons like the red
+       background (`.card`, `.btn-copy`, its `.mobile-bar` ancestor…), and
+       forcing one here previously stomped colored buttons like the red
        複製文字 button, turning its light text invisible against a now-matching
        light background. */
-    /* Look, don't touch — the real element is only raised for visibility. */
-    pointer-events: none;
 }
-.nav.tutorial-lift,
-.mobile-bar.tutorial-lift {
-    z-index: 1001;
-    pointer-events: none;
-}
+.mobile-bar.tutorial-lift,
+.col-preview.tutorial-lift { z-index: 1001; }
 
 .tutorial-panel {
-    /* Position (top/left) is set via inset/margin in the two modifier
-       classes below, never via `transform: translate(...)` — `.anim-in`
-       animates `transform` for its entrance, and an animated transform
-       replaces the whole property for its duration rather than composing
-       with a static one, which would silently wipe out translate-based
-       centering. `top`/`left` are unaffected by that, so the transition
-       below can animate the panel following the tutorial target. */
-    position: fixed;
     z-index: 1002;
-    width: calc(100% - 2rem);
-    max-width: 440px;
+    box-sizing: border-box;
     background: var(--color-bg);
     border: 1px solid var(--color-divider);
     box-shadow: var(--shadow-lg);
     padding: var(--space-4);
-    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-    transition: top 0.3s ease, left 0.3s ease;
+    animation: medgenFadeUp 0.25s ease both;
 }
-/* Steps with no spotlighted target (welcome/finish): centered on all four
-   sides via inset + margin auto rather than top/left, so it doesn't fight
-   the inline top/left px values Rust sets for `.tutorial-panel-anchored`. */
+/* No-target (welcome/finish) steps: a fixed overlay centered on all four
+   sides via inset + margin: auto rather than `transform: translate(...)` —
+   the entrance animation above animates `transform` too, and an animated
+   transform replaces the whole property for its duration rather than
+   composing with a static one, which would silently wipe out translate-based
+   centering. */
 .tutorial-panel-centered {
+    position: fixed;
     top: var(--space-4);
     right: var(--space-4);
     bottom: var(--space-4);
     left: var(--space-4);
     margin: auto;
+    width: calc(100% - 2rem);
+    max-width: 440px;
     /* Without this, `height: auto` + top and bottom both set stretches the
        box to fill the available space (per the abspos auto-height algorithm)
        instead of shrinking to the panel's actual content — `fit-content`
        forces shrink-to-fit so `margin: auto` centers a content-sized box. */
     height: fit-content;
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
 }
-/* Steps with a target: `top`/`left` are overwritten inline (in px) by
-   `position_tutorial_panel()` in main.rs from the target's bounding rect;
-   these are just a same-corner fallback until that first runs. */
-.tutorial-panel-anchored {
-    top: var(--space-4);
+/* Per-target steps: rendered as the spotlighted card's own last child (see
+   `view_tour_panel` in main.rs), so `position: absolute` resolves against
+   that card's `.tutorial-target`-applied `position: relative` with no JS
+   measurement needed — moving to a new step unmounts this one and mounts a
+   fresh copy at the new card, which is what makes the entrance animation
+   above replay on every step rather than needing a top/left transition. */
+.tutorial-panel-below,
+.tutorial-panel-above {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    max-width: 400px;
+    z-index: 1002;
+}
+.tutorial-panel-below { top: calc(100% + var(--space-4)); }
+.tutorial-panel-above { bottom: calc(100% + var(--space-4)); }
+/* The sticky mobile bar spans the full viewport width, so its hosted panel
+   insets from the screen edges instead of matching the bar's own width. */
+.tutorial-panel-mobile-copy {
     left: var(--space-4);
+    right: var(--space-4);
+    width: auto;
+    max-width: none;
 }
 .tutorial-panel-head {
     display: flex;
@@ -750,6 +764,31 @@ img { display: block; max-width: 100%; }
     color: var(--color-neutral-800);
     margin: 0;
 }
+.tutorial-note {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-neutral-600);
+    font-style: italic;
+    margin: 6px 0 0;
+}
+.tutorial-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: var(--space-3);
+}
+.tutorial-dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    background: var(--color-neutral-300);
+}
+.tutorial-dot.active {
+    width: 20px;
+    background: var(--color-accent-700);
+}
 .tutorial-controls {
     display: flex;
     justify-content: space-between;
@@ -757,6 +796,64 @@ img { display: block; max-width: 100%; }
     margin-top: var(--space-3);
 }
 .tutorial-controls .btn { flex: 1; }
+.tutorial-controls-spacer { flex: 1; }
+
+/* ═══════════════════════════════════════
+   Coach marks
+   One-time dismissible tips for the two features the tour no longer walks
+   through step-by-step, shown the first time they're actually relevant
+   (history has an entry / the form is complete) instead of during the tour.
+   ═══════════════════════════════════════ */
+.coach-anchor { position: relative; }
+.coach-mark {
+    position: absolute;
+    width: 240px;
+    box-sizing: border-box;
+    background: var(--color-bg);
+    border: 1px solid var(--color-divider);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-3);
+    z-index: 600;
+    text-align: left;
+    animation: medgenFadeUp 0.25s ease both;
+}
+.coach-mark-history {
+    top: calc(100% + var(--space-2));
+    right: 0;
+}
+.coach-mark-shortcut {
+    top: calc(100% + var(--space-2));
+    left: 50%;
+    transform: translateX(-50%);
+}
+.coach-mark-text {
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0 0 var(--space-2);
+}
+.coach-mark-dismiss {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--color-accent-700);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+}
+
+/* Demo pulse ring around the copy button during the tour's copy step. */
+.copy-btn-anchor { position: relative; }
+.copy-pulse-ring {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: medgenPulseRing 0.9s ease-out 2;
+}
+@keyframes medgenPulseRing {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 50%, transparent); }
+    100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent); }
+}
 
 /* ═══════════════════════════════════════
    Motion
@@ -784,6 +881,7 @@ img { display: block; max-width: 100%; }
     .docs-list { animation: none; }
     .toast-bar { animation: none; width: 100%; }
     .history-chevron { transition: none; }
-    .tutorial-panel.anim-in { animation: none; }
-    .tutorial-panel { transition: none; }
+    .tutorial-panel { animation: none; }
+    .coach-mark { animation: none; }
+    .copy-pulse-ring { animation: none; }
 }
