@@ -1,0 +1,18 @@
+# Build artifacts / dependency trees — regenerated, never hand-edited
+/target/
+/dist/
+/node_modules/
+/playwright-report/
+/test-results/
+
+# Lockfiles — machine-generated, not meant to be read for context
+Cargo.lock
+package-lock.json
+
+# Unused asset kept on disk but not linked from index.html (see CLAUDE.md
+# "Design system" section) — 2MB of base64 Inter, no reason to load it
+fonts.css
+
+# Binary assets
+favicon.ico
+icons/

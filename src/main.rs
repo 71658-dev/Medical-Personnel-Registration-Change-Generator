@@ -3,7 +3,7 @@ use gloo_timers::callback::Timeout;
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Event, KeyboardEvent, MouseEvent};
+use web_sys::{Event, HtmlElement, KeyboardEvent, MouseEvent};
 use yew::prelude::*;
 
 // ═══════════════════════════════════════════════════
@@ -363,6 +363,51 @@ fn is_desktop_viewport() -> bool {
         .map_or(false, |mql| mql.matches())
 }
 
+// Positions the tutorial panel for the current step. Steps with no target
+// (welcome/finish) clear any inline top/left so the `.tutorial-panel-centered`
+// CSS class (inset + margin: auto) takes over. Steps with a target compute a
+// spot next to the target's current bounding rect — below it if there's room,
+// above otherwise, clamped inside the viewport — and set it as inline top/left
+// px values; the `.tutorial-panel` CSS transition on those properties is what
+// makes the panel visibly glide to each new target rather than jump.
+fn position_tutorial_panel(panel_ref: &NodeRef, target_id: Option<&str>) {
+    let Some(panel_el) = panel_ref.cast::<HtmlElement>() else { return };
+    let style = panel_el.style();
+
+    let Some(id) = target_id else {
+        let _ = style.remove_property("top");
+        let _ = style.remove_property("left");
+        return;
+    };
+
+    let Some(window) = web_sys::window() else { return };
+    let Some(target_el) = window.document().and_then(|d| d.get_element_by_id(id)) else { return };
+
+    let target_rect = target_el.get_bounding_client_rect();
+    let panel_rect = panel_el.get_bounding_client_rect();
+    let viewport_w = window.inner_width().ok().and_then(|v| v.as_f64()).unwrap_or(target_rect.right());
+    let viewport_h = window.inner_height().ok().and_then(|v| v.as_f64()).unwrap_or(target_rect.bottom());
+
+    const GAP: f64 = 16.0;
+    const MARGIN: f64 = 16.0;
+    let panel_w = panel_rect.width();
+    let panel_h = panel_rect.height();
+
+    let top = if target_rect.bottom() + GAP + panel_h <= viewport_h {
+        target_rect.bottom() + GAP
+    } else if target_rect.top() - GAP - panel_h >= 0.0 {
+        target_rect.top() - GAP - panel_h
+    } else {
+        (viewport_h - panel_h - MARGIN).max(MARGIN)
+    };
+
+    let max_left = (viewport_w - panel_w - MARGIN).max(MARGIN);
+    let left = (target_rect.left() + (target_rect.width() - panel_w) / 2.0).clamp(MARGIN, max_left);
+
+    let _ = style.set_property("top", &format!("{top}px"));
+    let _ = style.set_property("left", &format!("{left}px"));
+}
+
 // Helper to copy text asynchronously using JS Clipboard API
 async fn copy_to_clipboard_async(text: String) -> Result<(), JsValue> {
     let window = web_sys::window().ok_or_else(|| JsValue::from_str("No window available"))?;
@@ -428,6 +473,11 @@ struct App {
     // Which step's target has already been scrolled into view, so `rendered`
     // only scrolls once per step change rather than on every re-render.
     tutorial_scrolled_step: Option<usize>,
+    tutorial_panel_ref: NodeRef,
+    // Re-runs `position_tutorial_panel` once the target's smooth scroll (see
+    // `rendered`) has settled, so the panel corrects onto its final resting
+    // spot instead of staying pinned to the pre-scroll rect.
+    tutorial_reposition_timeout: Option<Timeout>,
     name_ref: NodeRef,
     // Set when something should hand focus back to the name input on the next
     // render (see `rendered`); first render focuses unconditionally.
@@ -530,6 +580,8 @@ impl Component for App {
             tutorial_step: if tutorial_seen { None } else { Some(0) },
             tutorial_seen,
             tutorial_scrolled_step: None,
+            tutorial_panel_ref: NodeRef::default(),
+            tutorial_reposition_timeout: None,
             name_ref: NodeRef::default(),
             focus_name_pending: false,
             suppress_focus_suggestions: false,
@@ -865,11 +917,12 @@ impl Component for App {
 
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
         if let Some(idx) = self.tutorial_step {
+            let target_id = TUTORIAL_STEPS
+                .get(idx)
+                .and_then(|step| step.target_id(is_desktop_viewport()));
+
             if self.tutorial_scrolled_step != Some(idx) {
                 self.tutorial_scrolled_step = Some(idx);
-                let target_id = TUTORIAL_STEPS
-                    .get(idx)
-                    .and_then(|step| step.target_id(is_desktop_viewport()));
                 if let Some(id) = target_id {
                     if let Some(el) = web_sys::window()
                         .and_then(|w| w.document())
@@ -882,6 +935,16 @@ impl Component for App {
                     }
                 }
             }
+
+            // Place the panel against the target's current rect immediately
+            // (already correct if no scroll was needed), then correct once
+            // more after the smooth scroll above has had time to settle.
+            position_tutorial_panel(&self.tutorial_panel_ref, target_id);
+            let panel_ref = self.tutorial_panel_ref.clone();
+            let target_id_owned = target_id.map(str::to_string);
+            self.tutorial_reposition_timeout = Some(Timeout::new(350, move || {
+                position_tutorial_panel(&panel_ref, target_id_owned.as_deref());
+            }));
         }
 
         if !first_render && !self.focus_name_pending {
@@ -1519,11 +1582,16 @@ impl App {
             .count();
         let has_prev = self.tutorial_prev_index(idx).is_some();
         let is_last = self.tutorial_next_index(idx).is_none();
+        let has_target = step.target_id(is_desktop).is_some();
 
         html! {
             <>
                 <div class="tutorial-backdrop" onclick={ctx.link().callback(|_| Msg::TutorialSkip)}></div>
-                <div class="tutorial-panel anim-in" role="dialog" aria-modal="true" aria-label="操作教學">
+                <div
+                    ref={self.tutorial_panel_ref.clone()}
+                    class={classes!("tutorial-panel", "anim-in", if has_target { "tutorial-panel-anchored" } else { "tutorial-panel-centered" })}
+                    role="dialog" aria-modal="true" aria-label="操作教學"
+                >
                     <div class="tutorial-panel-head">
                         <span class="tutorial-progress">{format!("{} / {}", position, visible_count)}</span>
                         <button

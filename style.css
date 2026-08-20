@@ -679,15 +679,14 @@ img { display: block; max-width: 100%; }
 }
 
 .tutorial-panel {
-    /* Centered via left/right/margin (not transform: translateX) because
-       `.anim-in` animates `transform` — an animated transform replaces the
-       whole property for its duration rather than composing with a static
-       one, which would silently wipe out a translateX(-50%) centering. */
+    /* Position (top/left) is set via inset/margin in the two modifier
+       classes below, never via `transform: translate(...)` — `.anim-in`
+       animates `transform` for its entrance, and an animated transform
+       replaces the whole property for its duration rather than composing
+       with a static one, which would silently wipe out translate-based
+       centering. `top`/`left` are unaffected by that, so the transition
+       below can animate the panel following the tutorial target. */
     position: fixed;
-    left: var(--space-4);
-    right: var(--space-4);
-    bottom: var(--space-4);
-    margin: 0 auto;
     z-index: 1002;
     width: calc(100% - 2rem);
     max-width: 440px;
@@ -696,6 +695,29 @@ img { display: block; max-width: 100%; }
     box-shadow: var(--shadow-lg);
     padding: var(--space-4);
     padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    transition: top 0.3s ease, left 0.3s ease;
+}
+/* Steps with no spotlighted target (welcome/finish): centered on all four
+   sides via inset + margin auto rather than top/left, so it doesn't fight
+   the inline top/left px values Rust sets for `.tutorial-panel-anchored`. */
+.tutorial-panel-centered {
+    top: var(--space-4);
+    right: var(--space-4);
+    bottom: var(--space-4);
+    left: var(--space-4);
+    margin: auto;
+    /* Without this, `height: auto` + top and bottom both set stretches the
+       box to fill the available space (per the abspos auto-height algorithm)
+       instead of shrinking to the panel's actual content — `fit-content`
+       forces shrink-to-fit so `margin: auto` centers a content-sized box. */
+    height: fit-content;
+}
+/* Steps with a target: `top`/`left` are overwritten inline (in px) by
+   `position_tutorial_panel()` in main.rs from the target's bounding rect;
+   these are just a same-corner fallback until that first runs. */
+.tutorial-panel-anchored {
+    top: var(--space-4);
+    left: var(--space-4);
 }
 .tutorial-panel-head {
     display: flex;
@@ -763,4 +785,5 @@ img { display: block; max-width: 100%; }
     .toast-bar { animation: none; width: 100%; }
     .history-chevron { transition: none; }
     .tutorial-panel.anim-in { animation: none; }
+    .tutorial-panel { transition: none; }
 }

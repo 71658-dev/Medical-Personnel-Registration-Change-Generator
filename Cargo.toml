@@ -19,6 +19,7 @@ web-sys = { version = "0.3", features = [
     "Element",
     "DomRect",
     "HtmlElement",
+    "CssStyleDeclaration",
     "MediaQueryList",
     "ScrollIntoViewOptions",
     "ScrollBehavior",
