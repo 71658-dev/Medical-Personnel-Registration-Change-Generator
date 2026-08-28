@@ -491,7 +491,12 @@ impl Component for App {
         let history_coach_dismissed: bool = LocalStorage::get::<bool>("medgen_history_coach_seen").unwrap_or(false);
         let shortcut_coach_dismissed: bool = LocalStorage::get::<bool>("medgen_shortcut_coach_seen").unwrap_or(false);
 
-        // Keydown shortcut setup (Ctrl + Enter to copy, Escape to close the tour)
+        // Keydown shortcut setup: Ctrl/Cmd + Enter copies; Escape closes the
+        // tour; ←/→/Enter step through it. The closure can't read component
+        // state, so the tour keys are sent unconditionally — every Tutorial*
+        // handler no-ops (and returns `false`, so no re-render) when no tour
+        // is running, which keeps plain Enter and the arrow keys inert during
+        // ordinary use of the form.
         let link = ctx.link().clone();
         let keydown_closure = Closure::wrap(Box::new(move |event: KeyboardEvent| {
             if (event.ctrl_key() || event.meta_key()) && event.key() == "Enter" {
@@ -499,6 +504,12 @@ impl Component for App {
                 link.send_message(Msg::CopyText);
             } else if event.key() == "Escape" {
                 link.send_message(Msg::TutorialSkip);
+            } else {
+                match event.key().as_str() {
+                    "ArrowRight" | "Enter" => link.send_message(Msg::TutorialNext),
+                    "ArrowLeft" => link.send_message(Msg::TutorialPrev),
+                    _ => {}
+                }
             }
         }) as Box<dyn FnMut(KeyboardEvent)>);
 
@@ -872,23 +883,29 @@ impl Component for App {
                 true
             }
             Msg::TutorialNext => {
-                if let Some(cur) = self.tutorial_step {
-                    if let Some(next) = self.tutorial_next_index(cur) {
+                let Some(cur) = self.tutorial_step else { return false };
+                match self.tutorial_next_index(cur) {
+                    Some(next) => {
                         self.tutorial_step = Some(next);
                         self.tutorial_scrolled_step = None;
                         self.schedule_tour_demo(ctx, next);
+                        true
+                    }
+                    // Enter/→ on the last step finishes, mirroring the panel's
+                    // 完成 button (which sends Msg::TutorialFinish itself, so
+                    // this arm is only ever reached from the keyboard).
+                    None => {
+                        self.finish_tour(ctx);
+                        true
                     }
                 }
-                true
             }
             Msg::TutorialPrev => {
-                if let Some(cur) = self.tutorial_step {
-                    if let Some(prev) = self.tutorial_prev_index(cur) {
-                        self.tutorial_step = Some(prev);
-                        self.tutorial_scrolled_step = None;
-                        self.schedule_tour_demo(ctx, prev);
-                    }
-                }
+                let Some(cur) = self.tutorial_step else { return false };
+                let Some(prev) = self.tutorial_prev_index(cur) else { return false };
+                self.tutorial_step = Some(prev);
+                self.tutorial_scrolled_step = None;
+                self.schedule_tour_demo(ctx, prev);
                 true
             }
             Msg::TutorialJump(idx) => {
@@ -906,12 +923,7 @@ impl Component for App {
                 true
             }
             Msg::TutorialFinish => {
-                self.close_tour(ctx);
-                self.toast = Some(ToastState {
-                    message: "教學結束，祝使用順利！".to_string(),
-                    is_error: false,
-                });
-                self.schedule_toast_clear(ctx);
+                self.finish_tour(ctx);
                 true
             }
             Msg::DemoTypeName(gen, chars_typed) => {
@@ -1177,10 +1189,15 @@ impl Component for App {
                                 <path d="M3 21v-5h5"/>
                             </svg>
                         </button>
+                        // Labelled rather than icon-only: the tour is opt-in
+                        // after the first visit, and a bare "?" glyph reads as
+                        // generic help. The label collapses back to an icon
+                        // below 800px, where the nav has no room for it.
                         <button
                             id="tutorialReopenBtn"
-                            class="btn btn-icon btn-secondary"
+                            class="btn btn-secondary nav-tutorial-btn"
                             onclick={ctx.link().callback(|_| Msg::TutorialStart)}
+                            title="重新查看操作教學"
                             aria-label="操作教學"
                         >
                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1188,6 +1205,7 @@ impl Component for App {
                                 <path d="M9.09 9a3 3 0 015.83 1c0 2-3 2-3 4"/>
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
+                            <span class="nav-btn-label">{"教學"}</span>
                         </button>
                     </div>
                 </header>
@@ -1690,6 +1708,18 @@ impl App {
         self.schedule_auto_copy(ctx);
     }
 
+    /// `close_tour` plus the sign-off toast — the "reached the end" ending, as
+    /// opposed to the silent one `Msg::TutorialSkip` takes. Shared by the
+    /// panel's 完成 button and by Enter/→ on the last step.
+    fn finish_tour(&mut self, ctx: &Context<Self>) {
+        self.close_tour(ctx);
+        self.toast = Some(ToastState {
+            message: "教學結束，祝使用順利！".to_string(),
+            is_error: false,
+        });
+        self.schedule_toast_clear(ctx);
+    }
+
     /// Kicks off the new step's "watch it happen" demo. Bumps `demo_gen`
     /// first (invalidating any tick still scheduled from the previous step),
     /// then, for steps that have one, schedules the demo under the new
@@ -1801,6 +1831,8 @@ impl App {
                         }
                     }}
                 </div>
+                // Hidden below 800px in style.css — a phone has no arrow keys.
+                <div class="tutorial-keyhint">{"← → 鍵切換・Enter 下一步・Esc 跳過"}</div>
             </div>
         }
     }

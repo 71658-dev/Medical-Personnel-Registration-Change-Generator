@@ -227,6 +227,11 @@ img { display: block; max-width: 100%; }
 }
 .nav-actions { display: flex; align-items: center; gap: var(--space-2); }
 
+/* The one labelled nav action: same 36px height as its icon-only siblings,
+   just wider. Below 800px the label is dropped (see the mobile block) so the
+   button collapses back to a 36px square and the brand keeps its line. */
+.nav-tutorial-btn { height: 36px; padding: 0 var(--space-3); }
+
 .history-btn { position: relative; }
 .history-badge {
     position: absolute;
@@ -642,6 +647,11 @@ img { display: block; max-width: 100%; }
        unreachable there once expanded — same rule, different trigger. */
     .col-preview > .card.history-open-mobile { display: block; }
     .mobile-bar { display: block; }
+    /* No arrow keys and no room in the nav on a phone: the tour panel's
+       keyboard hint and the 教學 button's label both drop out here. */
+    .tutorial-keyhint { display: none; }
+    .nav-btn-label { display: none; }
+    .nav-tutorial-btn { width: 36px; padding: 0; }
 }
 
 /* ═══════════════════════════════════════
@@ -797,6 +807,13 @@ img { display: block; max-width: 100%; }
 }
 .tutorial-controls .btn { flex: 1; }
 .tutorial-controls-spacer { flex: 1; }
+.tutorial-keyhint {
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--color-neutral-500);
+    margin-top: var(--space-2);
+}
 
 /* ═══════════════════════════════════════
    Coach marks
