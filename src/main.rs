@@ -1365,7 +1365,7 @@ impl Component for App {
                                     }
                                 })}
                             </div>
-                            {if is_items_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-below") } else { html! {} }}
+                            {if is_items_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-above") } else { html! {} }}
                         </section>
                     </div>
 
