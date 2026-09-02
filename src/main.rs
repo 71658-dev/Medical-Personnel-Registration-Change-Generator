@@ -562,8 +562,19 @@ impl Component for App {
             tutorial_seen,
             tutorial_scrolled_step: None,
             // The auto-launched first-visit tour opens over a guaranteed-blank
-            // form, so the default (empty) snapshot is already correct here.
-            tour_snapshot: if tutorial_seen { None } else { Some(FormSnapshot::default()) },
+            // form, so every field here is the blank value — except
+            // `group_tab`, whose blank value is "全部", not `String::default()`'s
+            // "". Restoring an empty string on `close_tour` matched no tab and
+            // no category's `group`, silently emptying STEP 02's grid for
+            // every first-time visitor who skipped or finished the tour.
+            tour_snapshot: if tutorial_seen {
+                None
+            } else {
+                Some(FormSnapshot {
+                    group_tab: "全部".to_string(),
+                    ..Default::default()
+                })
+            },
             demo_gen: 0,
             demo_copy_pulse: false,
             history_coach_dismissed,

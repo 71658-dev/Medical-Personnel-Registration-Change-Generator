@@ -1,53 +1,63 @@
 /* ═══════════════════════════════════════
-   Modernist — Design Tokens
-   Source: _ds/modernist-ea58a47d.../styles.css
+   iOS 27 — Design Tokens
+   Source: Apple iOS 27 UI Kit (Sketch), ported via Claude Design canvas
+   操作教學設計評測 → 操作教學優化版.dc.html
    ═══════════════════════════════════════ */
 :root {
-    --color-bg: #f3f2f2;
-    --color-surface: #eae9e9;
-    --color-text: #201e1d;
-    --color-accent: #ec3013;
-    --color-accent-2: #e15b47;
-    --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
+    --color-bg: #f2f2f7;
+    --color-surface: #ffffff;
+    --color-text: #000000;
+    --color-accent: #0088ff;
+    --color-accent-2: #6155f5;
+    --color-divider: rgba(60, 60, 67, 0.29);
 
-    /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
-       same step of any role matches the others in visual value. */
-    --color-neutral-100: #f8f4f4;
-    --color-neutral-200: #eae7e7;
-    --color-neutral-300: #d7d3d3;
-    --color-neutral-400: #bab6b6;
-    --color-neutral-500: #9b9797;
-    --color-neutral-600: #7d7979;
-    --color-neutral-700: #605d5d;
-    --color-neutral-800: #444141;
-    --color-neutral-900: #2d2b2b;
+    /* Recessed fill — the iOS pattern for controls sunk into a white
+       surface (text fields, the result preview box) rather than the
+       bordered-box look flat design systems use for the same job. */
+    --color-fill: rgba(118, 118, 128, 0.12);
+    --color-fill-strong: rgba(118, 118, 128, 0.18);
 
-    --color-accent-100: #fff2ef;
-    --color-accent-200: #ffe0d9;
-    --color-accent-300: #ffc4b8;
-    --color-accent-400: #ff9783;
-    --color-accent-500: #ff563c;
-    --color-accent-600: #dd2b0f;
-    --color-accent-700: #ae1800;
-    --color-accent-800: #7c1405;
-    --color-accent-900: #4d170e;
+    /* Tonal ramps — iOS system gray steps (neutral) and a blue ramp built
+       on the same lightness progression (accent), so the same step of
+       either matches the other in visual weight. */
+    --color-neutral-100: #f2f2f7;
+    --color-neutral-200: #e5e5ea;
+    --color-neutral-300: #d1d1d6;
+    --color-neutral-400: #c7c7cc;
+    --color-neutral-500: #aeaeb2;
+    --color-neutral-600: #8e8e93;
+    --color-neutral-700: #636366;
+    --color-neutral-800: #48484a;
+    --color-neutral-900: #1c1c1e;
 
-    --color-accent-2-100: #fff2ef;
-    --color-accent-2-200: #ffe0da;
-    --color-accent-2-300: #ffc4b9;
-    --color-accent-2-400: #ff9784;
-    --color-accent-2-500: #ef6853;
-    --color-accent-2-600: #c94b39;
-    --color-accent-2-700: #9e3526;
-    --color-accent-2-800: #71261b;
-    --color-accent-2-900: #471d16;
+    --color-accent-100: #e5f3ff;
+    --color-accent-200: #cce6ff;
+    --color-accent-300: #99cdff;
+    --color-accent-400: #4da6ff;
+    --color-accent-500: #1a93ff;
+    --color-accent-600: #0074db;
+    --color-accent-700: #0068cc;
+    --color-accent-800: #004f99;
+    --color-accent-900: #003666;
 
-    /* Archivo is not self-hosted: index.html's CSP forbids the design
-       system's Google Fonts @import, so Latin falls back to the system
-       grotesque and CJK to the platform sans. */
-    --font-heading: "Archivo", system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "微軟正黑體", "PingFang TC", sans-serif;
-    --font-heading-weight: 800;
-    --font-body: "Archivo", system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "微軟正黑體", "PingFang TC", sans-serif;
+    --color-accent-2-100: #eeedff;
+    --color-accent-2-200: #dad8ff;
+    --color-accent-2-300: #b6b2ff;
+    --color-accent-2-400: #8f89ff;
+    --color-accent-2-500: #6155f5;
+    --color-accent-2-600: #4a3fde;
+    --color-accent-2-700: #3a30b8;
+    --color-accent-2-800: #2a2385;
+    --color-accent-2-900: #1c1859;
+
+    /* SF Pro is not self-hosted — it isn't installed outside Apple
+       platforms anyway. -apple-system/BlinkMacSystemFont resolve to it
+       on macOS/iOS and are silent no-ops elsewhere, so the stack falls
+       through to the platform's own UI face (Segoe UI Variable on
+       Windows) and a CJK-safe sans for the zh-TW copy. */
+    --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang TC", "Segoe UI Variable Text", "Segoe UI", "Microsoft JhengHei", "微軟正黑體", sans-serif;
+    --font-heading-weight: 600;
+    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang TC", "Segoe UI Variable Text", "Segoe UI", "Microsoft JhengHei", "微軟正黑體", sans-serif;
 
     --space-1: 4.0px;
     --space-2: 8.0px;
@@ -56,14 +66,17 @@
     --space-6: 24.0px;
     --space-8: 32.0px;
 
-    --radius-sm: 0px;
-    --radius-md: 0px;
-    --radius-lg: 0px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 14px;
+    --radius-capsule: 999px;
 
-    /* Elevation — soft ink-tinted shadows on the light ground. */
-    --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
-    --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
-    --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+    /* Elevation — soft, wide-blur shadows on the light ground, plus a
+       hairline inset stroke on translucent/glass surfaces (defined where
+       used) rather than a solid border. */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.10), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 14px 34px rgba(0, 0, 0, 0.20), 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 /* ═══════════════════════════════════════
@@ -93,7 +106,7 @@ img { display: block; max-width: 100%; }
 
 /* — rules — */
 .hr {
-    height: 2px;
+    height: 1px;
     border: 0;
     margin: var(--space-4) 0;
     background: var(--color-divider);
@@ -103,6 +116,10 @@ img { display: block; max-width: 100%; }
 
 /* ═══════════════════════════════════════
    Buttons
+   iOS controls are capsules regardless of height — a 36px icon button and
+   a 50px full-width CTA both get border-radius: 999px. The one exception
+   is .opt-btn (STEP 02/03's selectable option buttons), overridden below
+   to the smaller rounded-rect radius real iOS list/grid buttons use.
    ═══════════════════════════════════════ */
 .btn {
     display: inline-flex;
@@ -119,7 +136,7 @@ img { display: block; max-width: 100%; }
     background: transparent;
     border: 1px solid transparent;
     padding: var(--space-2) calc(var(--space-3) * 1.2);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-capsule);
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -128,9 +145,11 @@ img { display: block; max-width: 100%; }
 .btn-primary:hover:not(:disabled) { background: var(--color-accent-600); }
 .btn-primary:active:not(:disabled) { background: var(--color-accent-700); }
 
-.btn-secondary { border-color: var(--color-divider); }
-.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
-.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+/* Filled glass, not outlined — iOS secondary controls (header icon
+   buttons, the 教學 pill) sit on a translucent fill rather than a border. */
+.btn-secondary { border-color: transparent; background: var(--color-fill); }
+.btn-secondary:hover { background: var(--color-fill-strong); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 18%, transparent); }
 
 .btn-icon { width: 36px; height: 36px; padding: 0; }
 .btn-block { width: 100%; margin-top: var(--space-2); }
@@ -146,11 +165,11 @@ img { display: block; max-width: 100%; }
     font-size: 14px;
     color: var(--color-text);
     caret-color: var(--color-accent);
-    background: var(--color-surface);
-    border: 1px solid var(--color-divider);
+    background: var(--color-fill);
+    border: 1px solid transparent;
     border-radius: var(--radius-md);
 }
-.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.input:hover { background: var(--color-fill-strong); }
 .input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
 
 /* ═══════════════════════════════════════
@@ -161,8 +180,9 @@ img { display: block; max-width: 100%; }
     flex-direction: column;
     gap: var(--space-2);
     padding: var(--space-3);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     background: var(--color-surface);
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04), var(--shadow-sm);
 }
 .card-kicker {
     font-size: 10px;
@@ -187,7 +207,7 @@ img { display: block; max-width: 100%; }
 .card-head-center { align-items: center; }
 
 /* ═══════════════════════════════════════
-   Tags
+   Tags — pill badges, the iOS status-chip shape
    ═══════════════════════════════════════ */
 .tag {
     display: inline-flex;
@@ -195,7 +215,7 @@ img { display: block; max-width: 100%; }
     font-size: 11px;
     letter-spacing: 0.02em;
     padding: 3px 10px;
-    border-radius: calc(var(--radius-md) * 0.75);
+    border-radius: var(--radius-capsule);
     white-space: nowrap;
 }
 .tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
@@ -206,18 +226,21 @@ img { display: block; max-width: 100%; }
 .tag-group { display: flex; gap: 6px; }
 
 /* ═══════════════════════════════════════
-   Navigation
+   Navigation — translucent Liquid Glass bar, not a solid header with a
+   ruled-off bottom border.
    ═══════════════════════════════════════ */
 .nav {
     display: flex;
     align-items: center;
     gap: var(--space-4);
     padding: var(--space-3) var(--space-4);
-    border-bottom: 2px solid var(--color-divider);
     position: sticky;
     top: 0;
     z-index: 50;
-    background: var(--color-bg);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: inset 0 -0.5px 0 rgba(0, 0, 0, 0.12), 0 1px 0 rgba(0, 0, 0, 0.03);
 }
 .nav-brand {
     font-family: var(--font-heading);
@@ -240,6 +263,7 @@ img { display: block; max-width: 100%; }
     min-width: 14px;
     height: 14px;
     padding: 0 3px;
+    border-radius: var(--radius-capsule);
     background: var(--color-accent-700);
     color: var(--color-bg);
     font-size: 9px;
@@ -299,6 +323,7 @@ img { display: block; max-width: 100%; }
     transform: translateY(-50%);
     width: 26px;
     height: 26px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -316,8 +341,8 @@ img { display: block; max-width: 100%; }
     left: 0;
     right: 0;
     z-index: 40;
-    background: var(--color-bg);
-    border: 1px solid var(--color-divider);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
 }
 .name-suggestion-item {
@@ -332,12 +357,13 @@ img { display: block; max-width: 100%; }
     gap: 8px;
     background: none;
     border: none;
-    border-bottom: 1px solid var(--color-divider);
+    box-shadow: inset 0 -0.5px 0 var(--color-divider);
     cursor: pointer;
     color: var(--color-text);
 }
-.name-suggestion-item:last-child { border-bottom: none; }
-.name-suggestion-item:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.name-suggestion-item:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.name-suggestion-item:last-child { border-radius: 0 0 var(--radius-md) var(--radius-md); box-shadow: none; }
+.name-suggestion-item:hover { background: var(--color-fill); }
 .name-suggestion-hint { font-size: 10px; opacity: 0.5; }
 
 /* ═══════════════════════════════════════
@@ -357,7 +383,7 @@ img { display: block; max-width: 100%; }
     border-bottom: 2px solid transparent;
     color: var(--color-text);
     font-family: var(--font-heading);
-    font-weight: 800;
+    font-weight: 600;
     font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
@@ -384,22 +410,24 @@ img { display: block; max-width: 100%; }
     gap: 6px;
 }
 
-/* shared selectable option button (categories + items) */
+/* shared selectable option button (categories + items) — the smaller
+   rounded-rect radius, not the capsule .btn defaults to. */
 .opt-btn {
     justify-content: flex-start;
     text-align: left;
     width: 100%;
-    border: 1.5px solid var(--color-divider);
-    background: transparent;
+    border-radius: var(--radius-md);
+    border: 1.5px solid transparent;
+    background: var(--color-fill);
     color: var(--color-text);
     font-weight: 400;
 }
-.opt-btn:hover { background: color-mix(in srgb, var(--color-text) 6%, transparent); }
+.opt-btn:hover { background: var(--color-fill-strong); }
 .opt-btn.selected {
-    border-color: var(--color-accent-700);
+    border-color: var(--color-accent);
     background: var(--color-accent-100);
     color: var(--color-accent-800);
-    font-weight: 800;
+    font-weight: 600;
 }
 .opt-btn.selected:hover { background: var(--color-accent-200); }
 
@@ -408,6 +436,7 @@ img { display: block; max-width: 100%; }
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+    border-radius: 4px;
     border: 1.5px solid var(--color-divider);
     background: transparent;
     display: flex;
@@ -415,16 +444,16 @@ img { display: block; max-width: 100%; }
     justify-content: center;
 }
 .opt-btn.selected .check-box {
-    border-color: var(--color-accent-700);
-    background: var(--color-accent-700);
+    border-color: var(--color-accent);
+    background: var(--color-accent);
 }
 
 /* ═══════════════════════════════════════
    Preview + copy
    ═══════════════════════════════════════ */
 .preview-box {
-    background: var(--color-bg);
-    border: 1px solid var(--color-divider);
+    background: var(--color-fill);
+    border-radius: var(--radius-md);
     padding: var(--space-3);
     min-height: 3.4rem;
     display: flex;
@@ -458,7 +487,8 @@ img { display: block; max-width: 100%; }
     margin-top: 2px;
 }
 .key-cap {
-    border: 1px solid var(--color-divider);
+    border-radius: 5px;
+    background: var(--color-fill);
     padding: 1px 6px;
     font-size: 10px;
     font-weight: 600;
@@ -482,17 +512,17 @@ img { display: block; max-width: 100%; }
     padding: 6px 0;
     background: none;
     border: none;
-    border-bottom: 1px solid var(--color-divider);
+    box-shadow: inset 0 -0.5px 0 var(--color-divider);
     cursor: pointer;
     text-align: left;
     font: inherit;
     color: var(--color-text);
 }
-.doc-item:last-child { border-bottom: none; }
+.doc-item:last-child { box-shadow: none; }
 .doc-item:hover .doc-label { color: var(--color-accent-700); }
 .doc-item.checked .check-box {
-    border-color: var(--color-accent-700);
-    background: var(--color-accent-700);
+    border-color: var(--color-accent);
+    background: var(--color-accent);
 }
 .doc-label {
     font-size: 13px;
@@ -519,7 +549,7 @@ img { display: block; max-width: 100%; }
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     opacity: 0.7;
@@ -553,17 +583,17 @@ img { display: block; max-width: 100%; }
     text-align: left;
     background: none;
     border: none;
-    border-bottom: 1px solid var(--color-divider);
+    box-shadow: inset 0 -0.5px 0 var(--color-divider);
     color: var(--color-text);
     cursor: pointer;
     word-break: break-all;
     line-height: 1.5;
 }
-.history-item:last-child { border-bottom: none; }
-.history-item:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.history-item:last-child { box-shadow: none; }
+.history-item:hover { background: var(--color-fill); }
 
 /* ═══════════════════════════════════════
-   Mobile bar
+   Mobile bar — same glass treatment as .nav
    ═══════════════════════════════════════ */
 .mobile-bar {
     display: none;
@@ -572,8 +602,10 @@ img { display: block; max-width: 100%; }
     left: 0;
     right: 0;
     z-index: 60;
-    background: var(--color-bg);
-    border-top: 2px solid var(--color-divider);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: inset 0 0.5px 0 rgba(0, 0, 0, 0.12), 0 -1px 0 rgba(0, 0, 0, 0.03);
     padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
 }
 .mobile-preview {
@@ -603,9 +635,11 @@ img { display: block; max-width: 100%; }
     width: calc(100% - 2rem);
 }
 .toast-inner {
-    background: var(--color-bg);
-    border: 1px solid var(--color-divider);
-    box-shadow: var(--shadow-lg);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.85), var(--shadow-lg);
     padding: 10px 14px;
     font-size: 13px;
     font-weight: 600;
@@ -670,18 +704,19 @@ img { display: block; max-width: 100%; }
 .tutorial-backdrop {
     position: fixed;
     inset: 0;
-    background: color-mix(in srgb, var(--color-neutral-900) 68%, transparent);
+    background: color-mix(in srgb, var(--color-neutral-900) 55%, transparent);
     z-index: 1000;
 }
 .tutorial-target {
     position: relative;
     z-index: 1001;
+    border-radius: var(--radius-lg);
     outline: 3px solid var(--color-accent);
     outline-offset: 3px;
-    box-shadow: var(--shadow-lg), 0 0 0 8px color-mix(in srgb, var(--color-accent) 22%, transparent);
+    box-shadow: var(--shadow-lg), 0 0 0 8px color-mix(in srgb, var(--color-accent) 20%, transparent);
     /* No background override here — every target already has its own opaque
        background (`.card`, `.btn-copy`, its `.mobile-bar` ancestor…), and
-       forcing one here previously stomped colored buttons like the red
+       forcing one here previously stomped colored buttons like the accent
        複製文字 button, turning its light text invisible against a now-matching
        light background. */
 }
@@ -691,9 +726,11 @@ img { display: block; max-width: 100%; }
 .tutorial-panel {
     z-index: 1002;
     box-sizing: border-box;
-    background: var(--color-bg);
-    border: 1px solid var(--color-divider);
-    box-shadow: var(--shadow-lg);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.85), var(--shadow-lg);
     padding: var(--space-4);
     animation: medgenFadeUp 0.25s ease both;
 }
@@ -750,34 +787,39 @@ img { display: block; max-width: 100%; }
 }
 .tutorial-progress {
     font-size: 12px;
-    font-weight: 700;
-    color: var(--color-neutral-600);
+    font-weight: 600;
+    color: var(--color-neutral-700);
 }
 .tutorial-close {
-    background: transparent;
+    background: var(--color-fill);
     border: none;
-    color: var(--color-neutral-600);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    color: var(--color-neutral-700);
     cursor: pointer;
     padding: 4px;
     display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .tutorial-close:hover { color: var(--color-text); }
 .tutorial-title {
     font-family: var(--font-heading);
     font-weight: var(--font-heading-weight);
-    font-size: 16px;
+    font-size: 17px;
     margin: var(--space-2) 0 var(--space-1);
 }
 .tutorial-body {
     font-size: 14px;
     line-height: 1.5;
-    color: var(--color-neutral-800);
+    color: color-mix(in srgb, var(--color-text) 75%, transparent);
     margin: 0;
 }
 .tutorial-note {
     font-size: 12px;
     line-height: 1.4;
-    color: var(--color-neutral-600);
+    color: color-mix(in srgb, var(--color-text) 50%, transparent);
     font-style: italic;
     margin: 6px 0 0;
 }
@@ -792,12 +834,13 @@ img { display: block; max-width: 100%; }
     height: 8px;
     padding: 0;
     border: none;
+    border-radius: var(--radius-capsule);
     cursor: pointer;
-    background: var(--color-neutral-300);
+    background: var(--color-fill-strong);
 }
 .tutorial-dot.active {
     width: 20px;
-    background: var(--color-accent-700);
+    background: var(--color-accent);
 }
 .tutorial-controls {
     display: flex;
@@ -805,13 +848,13 @@ img { display: block; max-width: 100%; }
     gap: var(--space-2);
     margin-top: var(--space-3);
 }
-.tutorial-controls .btn { flex: 1; }
+.tutorial-controls .btn { flex: 1; min-height: 46px; }
 .tutorial-controls-spacer { flex: 1; }
 .tutorial-keyhint {
     text-align: center;
     font-size: 11px;
     line-height: 1.4;
-    color: var(--color-neutral-500);
+    color: color-mix(in srgb, var(--color-text) 40%, transparent);
     margin-top: var(--space-2);
 }
 
@@ -826,9 +869,11 @@ img { display: block; max-width: 100%; }
     position: absolute;
     width: 240px;
     box-sizing: border-box;
-    background: var(--color-bg);
-    border: 1px solid var(--color-divider);
-    box-shadow: var(--shadow-lg);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.85), var(--shadow-lg);
     padding: var(--space-3);
     z-index: 600;
     text-align: left;
@@ -850,8 +895,8 @@ img { display: block; max-width: 100%; }
 }
 .coach-mark-dismiss {
     font-size: 12px;
-    font-weight: 800;
-    color: var(--color-accent-700);
+    font-weight: 600;
+    color: var(--color-accent);
     background: none;
     border: none;
     cursor: pointer;
@@ -864,11 +909,12 @@ img { display: block; max-width: 100%; }
 .copy-pulse-ring {
     position: absolute;
     inset: 0;
+    border-radius: var(--radius-capsule);
     pointer-events: none;
     animation: medgenPulseRing 0.9s ease-out 2;
 }
 @keyframes medgenPulseRing {
-    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 50%, transparent); }
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent); }
     100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent); }
 }
 

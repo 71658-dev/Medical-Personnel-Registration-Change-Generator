@@ -55,12 +55,12 @@ Key structural facts:
 
 ## Design system
 
-`style.css` is a port of the **Modernist** design system from the Claude Design project `f7a5975d-1a4a-481c-ae0b-a8c1c2023ecc` (source of truth: `_ds/modernist-ea58a47d.../styles.css` there). The top of the file is that system's tokens verbatim — flat (`--radius-*: 0`), warm gray ground `#f3f2f2`, red accent ramp on `#ec3013`, 2px dividers, Archivo 800 headings — followed by the DS component classes actually used (`.btn`, `.input`, `.card`, `.tag`, `.nav`, `.hr`) and then app-specific layout classes. Pull design changes from that project rather than retuning tokens ad hoc.
+`style.css` is a port of the **iOS 27** design system — Apple's iOS 27 UI Kit (Sketch), rebuilt as a Claude Design library at project `e8be5781-2d2e-4372-b561-553609c28aca`, and adopted here after the tutorial-flow prototype `操作教學優化版.dc.html` (project `e92525ad-7863-4eca-9599-edcdba26c7f0`, which imports that library) established it as the app's actual visual direction. It supersedes the earlier **Modernist** system (flat `--radius-*: 0`, red accent `#ec3013`, Archivo 800). The top of the file is iOS 27's tokens — capsule buttons/tags (`--radius-capsule: 999px`), white cards on a `#f2f2f7` ground, blue accent ramp on `#0088ff`, SF Pro headings at weight 600, translucent Liquid Glass surfaces (`.nav`, `.mobile-bar`, `.tutorial-panel`, `.coach-mark`, `.toast-inner` — `backdrop-filter: blur(...) saturate(180%)` over semi-opaque white) — followed by the same component classes as before (`.btn`, `.input`, `.card`, `.tag`, `.nav`, `.hr`) and then app-specific layout classes. Only token values and a handful of component rules (radius, shadow, translucency) changed for this port, not the class names — `main.rs` needed no edits. Pull further design changes from the iOS 27 UI Kit project rather than retuning tokens ad hoc.
 
-Two deliberate deviations from the upstream DS file:
+Two deliberate deviations from a literal system port:
 
-- Its `@import url('https://fonts.googleapis.com/css2?family=Archivo…')` is **dropped** — `index.html`'s CSP is same-origin only, so the import would be blocked. Archivo stays first in `--font-heading`/`--font-body` and falls back to system-ui plus a CJK stack; since the UI is almost entirely zh-TW, only Latin runs ("STEP 01", "Ctrl") are affected. Self-hosting an Archivo woff2 would restore it.
-- Because the stack no longer names Inter, `fonts.css` is unlinked from `index.html` (and dropped from `LARGE_RESOURCES` in `sw.js`) rather than shipping 2 MB of unused base64.
+- SF Pro isn't self-hosted, and isn't installed outside Apple platforms regardless — `-apple-system`/`BlinkMacSystemFont` resolve to it on macOS/iOS and are silent no-ops elsewhere, so `--font-heading`/`--font-body` fall through to the platform's own UI face (Segoe UI Variable on Windows) plus a CJK-safe sans; since the UI is almost entirely zh-TW, only Latin runs ("STEP 01", "Ctrl") are affected by the substitution.
+- Because the stack still doesn't name Inter, `fonts.css` stays unlinked from `index.html` (and dropped from `LARGE_RESOURCES` in `sw.js`) rather than shipping 2 MB of unused base64.
 
 ## Deployment
 
