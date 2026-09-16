@@ -1144,7 +1144,7 @@ impl Component for App {
                             html! {
                                 <button
                                     id="installBtn"
-                                    class="btn btn-secondary"
+                                    class="btn btn-glass nav-pill-btn"
                                     onclick={ctx.link().callback(|_| Msg::TriggerInstall)}
                                     aria-label="安裝應用"
                                 >
@@ -1159,54 +1159,62 @@ impl Component for App {
                         } else {
                             html! {}
                         }}
-                        <div class="coach-anchor">
-                            <button
-                                id="historyBtn"
-                                class="btn btn-icon btn-secondary history-btn"
-                                onclick={ctx.link().callback(|_| Msg::ToggleHistory)}
-                                aria-label="複製紀錄"
-                            >
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="12 8 12 12 14 14"/>
-                                    <circle cx="12" cy="12" r="10"/>
-                                </svg>
-                                {if !self.copy_history.is_empty() {
-                                    html! { <span class="history-badge">{self.copy_history.len()}</span> }
+                        // The two record-keeping actions share one
+                        // segmented glass capsule split by a hairline (see
+                        // `.nav-group`) rather than reading as two unrelated
+                        // pills; the capsule owns the surface, its members
+                        // are transparent.
+                        <div class="nav-group">
+                            <div class="coach-anchor">
+                                <button
+                                    id="historyBtn"
+                                    class="btn btn-icon nav-icon-btn history-btn"
+                                    onclick={ctx.link().callback(|_| Msg::ToggleHistory)}
+                                    aria-label="複製紀錄"
+                                >
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="12 8 12 12 14 14"/>
+                                        <circle cx="12" cy="12" r="10"/>
+                                    </svg>
+                                    {if !self.copy_history.is_empty() {
+                                        html! { <span class="history-badge">{self.copy_history.len()}</span> }
+                                    } else {
+                                        html! {}
+                                    }}
+                                </button>
+                                {if show_history_coach {
+                                    html! {
+                                        <div class="coach-mark coach-mark-history">
+                                            <p class="coach-mark-text">{"點這裡可以看最近複製過的紀錄，點一下就能重新複製。"}</p>
+                                            <button type="button" class="coach-mark-dismiss" onclick={ctx.link().callback(|_| Msg::DismissHistoryCoach)}>{"知道了"}</button>
+                                        </div>
+                                    }
                                 } else {
                                     html! {}
                                 }}
+                            </div>
+                            <div class="nav-group-divider"></div>
+                            <button
+                                id="resetBtn"
+                                class="btn btn-icon nav-icon-btn nav-icon-btn-danger"
+                                onclick={ctx.link().callback(|_| Msg::ResetAll)}
+                                aria-label="清除重填"
+                            >
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/>
+                                    <path d="M21 3v5h-5"/>
+                                    <path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/>
+                                    <path d="M3 21v-5h5"/>
+                                </svg>
                             </button>
-                            {if show_history_coach {
-                                html! {
-                                    <div class="coach-mark coach-mark-history">
-                                        <p class="coach-mark-text">{"點這裡可以看最近複製過的紀錄，點一下就能重新複製。"}</p>
-                                        <button type="button" class="coach-mark-dismiss" onclick={ctx.link().callback(|_| Msg::DismissHistoryCoach)}>{"知道了"}</button>
-                                    </div>
-                                }
-                            } else {
-                                html! {}
-                            }}
                         </div>
-                        <button
-                            id="resetBtn"
-                            class="btn btn-icon btn-secondary"
-                            onclick={ctx.link().callback(|_| Msg::ResetAll)}
-                            aria-label="清除重填"
-                        >
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/>
-                                <path d="M21 3v5h-5"/>
-                                <path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/>
-                                <path d="M3 21v-5h5"/>
-                            </svg>
-                        </button>
                         // Labelled rather than icon-only: the tour is opt-in
                         // after the first visit, and a bare "?" glyph reads as
                         // generic help. The label collapses back to an icon
                         // below 800px, where the nav has no room for it.
                         <button
                             id="tutorialReopenBtn"
-                            class="btn btn-secondary nav-tutorial-btn"
+                            class="btn btn-glass nav-pill-btn nav-tutorial-btn"
                             onclick={ctx.link().callback(|_| Msg::TutorialStart)}
                             title="重新查看操作教學"
                             aria-label="操作教學"
@@ -1234,7 +1242,6 @@ impl Component for App {
                                 </div>
                                 <span class={name_tag_class}>{name_tag_label}</span>
                             </div>
-                            <div class="hr hr-tight"></div>
                             <div class="name-field">
                                 <input
                                     type="text"
@@ -1301,7 +1308,6 @@ impl Component for App {
                                     <span class={cat_tag_class}>{cat_tag_label}</span>
                                 </div>
                             </div>
-                            <div class="hr hr-tight"></div>
                             <div class="tabs-scroll">
                                 {for group_tabs.into_iter().map(|tab| {
                                     let tab_str = tab.to_string();
@@ -1348,7 +1354,6 @@ impl Component for App {
                                     <span class={items_tag_class}>{items_tag_label}</span>
                                 </div>
                             </div>
-                            <div class="hr hr-tight"></div>
                             <div class="items-grid">
                                 {for ITEMS.iter().map(|item| {
                                     let item_id = item.id.to_string();
@@ -1390,7 +1395,6 @@ impl Component for App {
                                     {if is_complete { "可複製" } else { "未完成" }}
                                 </span>
                             </div>
-                            <div class="hr hr-tight"></div>
                             <div class="preview-box">
                                 <p id="outputResult" class={classes!("preview-text", (!show_result).then_some("placeholder"))}>
                                     {desktop_preview_text}
@@ -1399,7 +1403,7 @@ impl Component for App {
                             <div class="copy-btn-anchor">
                                 {if self.demo_copy_pulse { html! { <div class="copy-pulse-ring"></div> } } else { html! {} }}
                                 <button
-                                    class="btn btn-block btn-copy"
+                                    class={classes!("btn", "btn-block", "btn-copy", self.copied_morph.then_some("copied"))}
                                     id="desktopCopyBtn"
                                     disabled={!is_complete}
                                     onclick={ctx.link().callback(|_| Msg::CopyText)}
@@ -1448,13 +1452,12 @@ impl Component for App {
                                     html! {}
                                 } else {
                                     html! {
-                                        <span class="tag tag-outline tag-mode">
-                                            {format!("{}/{}", docs_checked_count, doc_codes.len())}
+                                        <span class="docs-count">
+                                            {format!("{} / {}", docs_checked_count, doc_codes.len())}
                                         </span>
                                     }
                                 }}
                             </div>
-                            <div class="hr hr-tight"></div>
                             {if doc_codes.is_empty() {
                                 html! { <div class="docs-empty">{"選擇申請項目後，將自動列出應備文件"}</div> }
                             } else {
@@ -1575,7 +1578,7 @@ impl Component for App {
                         {mobile_preview_text}
                     </div>
                     <button
-                        class={classes!("btn", "btn-copy", "mobile-copy-btn", (is_copy_target && !is_desktop).then_some("tutorial-target"))}
+                        class={classes!("btn", "btn-copy", "mobile-copy-btn", self.copied_morph.then_some("copied"), (is_copy_target && !is_desktop).then_some("tutorial-target"))}
                         id="mobileCopyBtn"
                         disabled={!is_complete}
                         onclick={ctx.link().callback(|_| Msg::CopyText)}

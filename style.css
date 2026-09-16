@@ -9,12 +9,29 @@
     --color-text: #000000;
     --color-accent: #0088ff;
     --color-accent-2: #6155f5;
-    --color-divider: rgba(60, 60, 67, 0.29);
+    /* Hairline separator — iOS rules cards and lists with a 0.5px line at
+       12% black, not the heavier gray a bordered design system would use. */
+    --color-divider: rgba(0, 0, 0, 0.12);
+
+    /* Status hues. Green is the "done" color throughout (step pills, the
+       copied button) precisely because the accent blue already means
+       "interactive" — a completed step must not read as a target. */
+    --color-success: #34c759;
+    --color-success-fill: rgba(52, 199, 89, 0.15);
+    --color-success-text: #248a3d;
+    --color-danger: #ff383c;
+
+    /* iOS label ramp — secondary/tertiary text is the label color at
+       reduced alpha so it tints with whatever it sits on. */
+    --color-text-secondary: rgba(60, 60, 67, 0.6);
+    --color-text-muted: rgba(60, 60, 67, 0.5);
+    --color-text-tertiary: rgba(60, 60, 67, 0.4);
 
     /* Recessed fill — the iOS pattern for controls sunk into a white
        surface (text fields, the result preview box) rather than the
        bordered-box look flat design systems use for the same job. */
     --color-fill: rgba(118, 118, 128, 0.12);
+    --color-fill-soft: rgba(116, 116, 128, 0.08);
     --color-fill-strong: rgba(118, 118, 128, 0.18);
 
     /* Tonal ramps — iOS system gray steps (neutral) and a blue ramp built
@@ -74,7 +91,7 @@
     /* Elevation — soft, wide-blur shadows on the light ground, plus a
        hairline inset stroke on translucent/glass surfaces (defined where
        used) rather than a solid border. */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 20px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.10), 0 1px 2px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 14px 34px rgba(0, 0, 0, 0.20), 0 2px 8px rgba(0, 0, 0, 0.12);
 }
@@ -89,8 +106,8 @@ body {
     background: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 17px;
+    line-height: 1.4;
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
 }
@@ -111,9 +128,6 @@ img { display: block; max-width: 100%; }
     margin: var(--space-4) 0;
     background: var(--color-divider);
 }
-/* the card variant: hugs the header it separates */
-.hr-tight { margin: var(--space-1) 0 0; }
-
 /* ═══════════════════════════════════════
    Buttons
    iOS controls are capsules regardless of height — a 36px icon button and
@@ -130,47 +144,75 @@ img { display: block; max-width: 100%; }
     text-decoration: none;
     font-family: var(--font-heading);
     font-weight: var(--font-heading-weight);
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.2;
     color: var(--color-text);
     background: transparent;
     border: 1px solid transparent;
     padding: var(--space-2) calc(var(--space-3) * 1.2);
     border-radius: var(--radius-capsule);
+    /* The spring curve every press in the kit uses — buttons squash on
+       :active rather than swapping to a darker fill. */
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.18s ease;
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.btn-primary { background: var(--color-accent); color: var(--color-bg); }
-.btn-primary:hover:not(:disabled) { background: var(--color-accent-600); }
-.btn-primary:active:not(:disabled) { background: var(--color-accent-700); }
+.btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 136, 255, 0.35);
+}
+.btn-primary:hover:not(:disabled) { background: var(--color-accent-500); }
+.btn-primary:active:not(:disabled) { transform: scale(0.96); }
 
-/* Filled glass, not outlined — iOS secondary controls (header icon
-   buttons, the 教學 pill) sit on a translucent fill rather than a border. */
-.btn-secondary { border-color: transparent; background: var(--color-fill); }
+/* Tinted, not outlined — the iOS secondary shape is accent text on the
+   recessed system fill, with a hairline inset instead of a border. */
+.btn-secondary {
+    border-color: transparent;
+    background: var(--color-fill);
+    color: var(--color-accent);
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+}
 .btn-secondary:hover { background: var(--color-fill-strong); }
-.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 18%, transparent); }
+.btn-secondary:active { transform: scale(0.96); }
+
+/* Liquid Glass capsule — nav controls float on the translucent bar on
+   their own blurred surface rather than sitting in a flat gray fill. */
+.btn-glass {
+    border-color: transparent;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: var(--color-accent);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0, 0, 0, 0.10);
+}
+.btn-glass:hover { transform: scale(1.06) translateY(-1px); }
+.btn-glass:active { transform: scale(0.94); }
 
 .btn-icon { width: 36px; height: 36px; padding: 0; }
-.btn-block { width: 100%; margin-top: var(--space-2); }
+.btn-block { width: 100%; margin-top: var(--space-1); }
 
 /* ═══════════════════════════════════════
    Forms
    ═══════════════════════════════════════ */
 .input {
     width: 100%;
-    min-height: 36px;
-    padding: 6px 10px;
+    height: 52px;
+    padding: 0 var(--space-4);
     font: inherit;
-    font-size: 14px;
+    font-size: 17px;
     color: var(--color-text);
     caret-color: var(--color-accent);
-    background: var(--color-fill);
-    border: 1px solid transparent;
+    /* Recessed fill + hairline inset, not a bordered box: the field reads
+       as a well sunk into the white card. */
+    background: var(--color-fill-soft);
+    border: none;
     border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.045);
 }
-.input:hover { background: var(--color-fill-strong); }
-.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+.input:hover { background: var(--color-fill); }
+.input:focus-visible { outline-offset: 0; box-shadow: inset 0 0 0 1px var(--color-accent); }
 
 /* ═══════════════════════════════════════
    Cards
@@ -178,15 +220,16 @@ img { display: block; max-width: 100%; }
 .card {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
-    padding: var(--space-3);
+    gap: 10px;
+    padding: var(--space-4);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
     box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04), var(--shadow-sm);
 }
 .card-kicker {
-    font-size: 10px;
-    letter-spacing: 0.1em;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--color-accent);
 }
@@ -194,7 +237,8 @@ img { display: block; max-width: 100%; }
     font-family: var(--font-heading);
     font-weight: var(--font-heading-weight);
     font-size: 17px;
-    line-height: 1.2;
+    line-height: 22px;
+    margin-top: 2px;
 }
 .card-head {
     display: flex;
@@ -212,17 +256,26 @@ img { display: block; max-width: 100%; }
 .tag {
     display: inline-flex;
     align-items: center;
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 600;
     letter-spacing: 0.02em;
     padding: 3px 10px;
     border-radius: var(--radius-capsule);
     white-space: nowrap;
 }
-.tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
-.tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
-.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
-/* select-mode marker (單選/複選) sits at the darker accent step */
-.tag-mode { border-color: var(--color-accent-700); color: var(--color-accent-700); }
+/* The "done" chip is green, not accent-blue: blue is this app's
+   interactive color, so a completed step tagged in it would read as
+   something still to press. It only ever appears on the 待→已 flip, so it
+   can afford to bounce in. */
+.tag-accent {
+    background: var(--color-success-fill);
+    color: var(--color-success-text);
+    animation: medgenBounceIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.tag-neutral { background: var(--color-fill); color: var(--color-text-secondary); }
+/* select-mode marker (單選/複選) — same recessed chip, no outline */
+.tag-outline { background: var(--color-fill); color: var(--color-text-secondary); }
+.tag-mode { font-weight: 400; }
 .tag-group { display: flex; gap: 6px; }
 
 /* ═══════════════════════════════════════
@@ -232,42 +285,79 @@ img { display: block; max-width: 100%; }
 .nav {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
     position: sticky;
     top: 0;
     z-index: 50;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    box-shadow: inset 0 -0.5px 0 rgba(0, 0, 0, 0.12), 0 1px 0 rgba(0, 0, 0, 0.03);
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    /* Four layers, not a border: a lit top edge and a hairline bottom edge
+       give the glass thickness, the wide drop shadow lifts it off the
+       content scrolling underneath. */
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -0.5px 0 rgba(0, 0, 0, 0.08),
+        0 1px 0 rgba(0, 0, 0, 0.05),
+        0 10px 24px rgba(0, 0, 0, 0.08);
 }
 .nav-brand {
     font-family: var(--font-heading);
     font-weight: var(--font-heading-weight);
-    font-size: 18px;
+    font-size: 17px;
+    line-height: 22px;
     margin-right: auto;
 }
-.nav-actions { display: flex; align-items: center; gap: var(--space-2); }
+.nav-actions { display: flex; align-items: center; gap: var(--space-3); }
 
-/* The one labelled nav action: same 36px height as its icon-only siblings,
-   just wider. Below 800px the label is dropped (see the mobile block) so the
+/* Segmented glass group — 複製紀錄 and 清除重填 share one capsule split by a
+   hairline, the iOS grouped-control pattern, instead of reading as two
+   unrelated pills. The capsule owns the surface; its members are bare. */
+.nav-group {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: var(--radius-capsule);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0, 0, 0, 0.10);
+}
+.nav-group-divider {
+    width: 1px;
+    height: 20px;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.10);
+}
+.nav-icon-btn {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--color-accent);
+}
+.nav-icon-btn:hover { background: transparent; transform: scale(1.18) translateY(-2px); }
+.nav-icon-btn:active { transform: scale(0.86); }
+/* 清除重填 is the one destructive action in the header. */
+.nav-icon-btn-danger { color: var(--color-danger); }
+
+/* Labelled nav actions: same 36px height as their icon-only siblings, just
+   wider. Below 800px the 教學 label is dropped (see the mobile block) so the
    button collapses back to a 36px square and the brand keeps its line. */
-.nav-tutorial-btn { height: 36px; padding: 0 var(--space-3); }
+.nav-pill-btn { height: 36px; padding: 0 var(--space-4); }
 
 .history-btn { position: relative; }
 .history-badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
-    min-width: 14px;
-    height: 14px;
+    top: -2px;
+    right: -2px;
+    min-width: 15px;
+    height: 15px;
     padding: 0 3px;
     border-radius: var(--radius-capsule);
-    background: var(--color-accent-700);
-    color: var(--color-bg);
-    font-size: 9px;
-    font-weight: 800;
+    background: var(--color-danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -315,25 +405,27 @@ img { display: block; max-width: 100%; }
    Step 01 — name field
    ═══════════════════════════════════════ */
 .name-field { position: relative; }
-.name-input { padding-right: 2.4rem; }
+.name-input { padding-right: 40px; }
+/* iOS's filled clear glyph: a gray disc with a white cross, not a bare ✕
+   floating in the field. */
 .name-clear {
     position: absolute;
-    right: 6px;
+    right: var(--space-3);
     top: 50%;
     transform: translateY(-50%);
-    width: 26px;
-    height: 26px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text);
-    background: none;
+    color: #fff;
+    background: rgba(60, 60, 67, 0.3);
     border: none;
     cursor: pointer;
-    opacity: 0.55;
+    padding: 0;
 }
-.name-clear:hover { opacity: 1; }
+.name-clear:hover { background: rgba(60, 60, 67, 0.45); }
 
 .name-suggestions {
     position: absolute;
@@ -369,36 +461,44 @@ img { display: block; max-width: 100%; }
 /* ═══════════════════════════════════════
    Step 02 — group tabs + category grid
    ═══════════════════════════════════════ */
+/* iOS segmented control: a recessed capsule track with a raised white
+   thumb sliding between options, not underlined text tabs. */
 .tabs-scroll {
     display: flex;
-    gap: var(--space-4);
+    gap: 2px;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding: 3px;
+    background: var(--color-fill);
+    border-radius: var(--radius-capsule);
 }
 .tab-btn {
     flex-shrink: 0;
-    padding: 6px 2px;
-    background: none;
+    padding: 6px 14px;
+    background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--color-text);
+    border-radius: var(--radius-capsule);
+    color: var(--color-text-secondary);
     font-family: var(--font-heading);
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
+    transition: transform 0.15s ease;
 }
-.tab-btn:hover { color: var(--color-accent-700); }
+.tab-btn:hover { color: var(--color-accent); }
+.tab-btn:active { transform: scale(0.92); }
 .tab-btn.active {
-    border-bottom-color: var(--color-accent-700);
-    color: var(--color-accent-700);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--color-accent);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.6);
+    animation: medgenBounceIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .cat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 6px;
-    margin-top: var(--space-2);
+    gap: var(--space-2);
+    margin-top: 6px;
 }
 
 /* ═══════════════════════════════════════
@@ -407,44 +507,60 @@ img { display: block; max-width: 100%; }
 .items-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 6px;
+    gap: var(--space-2);
 }
 
-/* shared selectable option button (categories + items) — the smaller
-   rounded-rect radius, not the capsule .btn defaults to. */
+/* Shared selectable option button (categories + items). Two departures
+   from .btn: the smaller rounded-rect radius real iOS grid buttons use
+   rather than a capsule, and a Liquid Glass surface — selection is an
+   inset accent ring and a color/weight change, never a filled swatch, so
+   a grid of twenty of them stays quiet until one is chosen. */
 .opt-btn {
     justify-content: flex-start;
     text-align: left;
     width: 100%;
-    border-radius: var(--radius-md);
-    border: 1.5px solid transparent;
-    background: var(--color-fill);
-    color: var(--color-text);
+    padding: 10px var(--space-3);
+    font-size: 14px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: #1a1a1a;
     font-weight: 400;
+    box-shadow:
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.85),
+        0 6px 20px rgba(0, 0, 0, 0.14),
+        0 1px 2px rgba(0, 0, 0, 0.10);
+    transition: transform 0.12s ease;
 }
-.opt-btn:hover { background: var(--color-fill-strong); }
+.opt-btn:hover { background: rgba(255, 255, 255, 0.75); }
+.opt-btn:active { transform: scale(0.95); }
 .opt-btn.selected {
-    border-color: var(--color-accent);
-    background: var(--color-accent-100);
-    color: var(--color-accent-800);
+    color: var(--color-accent);
     font-weight: 600;
+    box-shadow:
+        inset 0 0 0 1.5px rgba(0, 136, 255, 0.55),
+        0 6px 20px rgba(0, 0, 0, 0.14),
+        0 1px 2px rgba(0, 0, 0, 0.10);
+    animation: medgenBounceIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.opt-btn.selected:hover { background: var(--color-accent-200); }
 
 .item-btn { gap: 8px; }
 .check-box {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
     border-radius: 4px;
-    border: 1.5px solid var(--color-divider);
+    border: none;
+    box-shadow: inset 0 0 0 1.5px rgba(60, 60, 67, 0.3);
     background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .opt-btn.selected .check-box {
-    border-color: var(--color-accent);
+    box-shadow: none;
     background: var(--color-accent);
 }
 
@@ -452,64 +568,89 @@ img { display: block; max-width: 100%; }
    Preview + copy
    ═══════════════════════════════════════ */
 .preview-box {
-    background: var(--color-fill);
+    background: var(--color-fill-soft);
     border-radius: var(--radius-md);
-    padding: var(--space-3);
+    padding: 14px var(--space-4);
     min-height: 3.4rem;
     display: flex;
     align-items: center;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.045);
 }
 .preview-text {
     margin: 0;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     word-break: break-all;
-    line-height: 1.6;
+    line-height: 21px;
     color: var(--color-text);
 }
-.preview-text.placeholder { color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.preview-text.placeholder { color: rgba(60, 60, 67, 0.3); }
 
 .btn-copy {
     justify-content: center;
-    background: var(--color-accent-700);
-    color: var(--color-bg);
+    height: 50px;
+    font-size: 17px;
+    background: var(--color-accent);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0, 136, 255, 0.35);
 }
-.btn-copy:hover:not(:disabled) { background: var(--color-accent-600); }
-.btn-copy:active:not(:disabled) { background: var(--color-accent-800); }
+.btn-copy:hover:not(:disabled) { transform: scale(1.015); }
+.btn-copy:active:not(:disabled) { transform: scale(0.96); }
+/* Post-copy morph: the button itself becomes the confirmation — green,
+   inert, and bounced like a dock icon, so the toast isn't the only place
+   the copy is acknowledged. */
+.btn-copy.copied,
+.btn-copy.copied:hover:not(:disabled) {
+    background: var(--color-success);
+    box-shadow: 0 4px 10px rgba(52, 199, 89, 0.35);
+    cursor: default;
+    transform: none;
+    animation: medgenDockBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
 
 .shortcut-hint {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 5px;
-    font-size: 11px;
-    opacity: 0.55;
-    margin-top: 2px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: var(--space-1);
 }
 .key-cap {
     border-radius: 5px;
     background: var(--color-fill);
     padding: 1px 6px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
 }
 
 /* ═══════════════════════════════════════
    應備文件檢核表
    ═══════════════════════════════════════ */
+.docs-count {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
 .docs-empty {
     padding: var(--space-3) 0;
-    font-size: 12px;
-    opacity: 0.5;
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    animation: medgenSlideUp 0.3s ease both;
 }
-.docs-list { animation: medgenSlideDown 0.35s ease both; }
+.docs-list {
+    display: flex;
+    flex-direction: column;
+    animation: medgenSlideDown 0.35s ease both;
+}
 
 .doc-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
-    padding: 6px 0;
+    padding: var(--space-2) 0;
     background: none;
     border: none;
     box-shadow: inset 0 -0.5px 0 var(--color-divider);
@@ -519,14 +660,23 @@ img { display: block; max-width: 100%; }
     color: var(--color-text);
 }
 .doc-item:last-child { box-shadow: none; }
-.doc-item:hover .doc-label { color: var(--color-accent-700); }
+.doc-item:hover .doc-label { color: var(--color-accent); }
+/* Checklist ticks are round where the item grid's are square — a circle
+   reads as "confirmed", a checkbox as "selected", and these two lists sit
+   side by side. */
+.doc-item .check-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+}
 .doc-item.checked .check-box {
-    border-color: var(--color-accent);
+    box-shadow: none;
     background: var(--color-accent);
+    animation: medgenBounceIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 .doc-label {
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 19px;
 }
 .doc-item.checked .doc-label {
     text-decoration: line-through;
@@ -550,21 +700,21 @@ img { display: block; max-width: 100%; }
     gap: 6px;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    opacity: 0.7;
+    color: var(--color-text-secondary);
 }
 .history-header-actions { display: flex; align-items: center; gap: 8px; }
 .history-clear-btn {
-    font-size: 11px;
+    font-size: 13px;
     font-family: inherit;
     background: none;
     border: none;
-    color: var(--color-text);
-    opacity: 0.55;
+    color: var(--color-danger);
     cursor: pointer;
+    padding: 0;
 }
-.history-clear-btn:hover { opacity: 1; color: var(--color-accent-700); }
+.history-clear-btn:hover { opacity: 0.7; }
 .history-chevron { transition: transform 0.2s; }
 .history-chevron.open { transform: rotate(180deg); }
 
@@ -572,13 +722,13 @@ img { display: block; max-width: 100%; }
 .history-empty {
     padding: var(--space-4);
     text-align: center;
-    font-size: 12px;
-    opacity: 0.5;
+    font-size: 13px;
+    color: rgba(60, 60, 67, 0.3);
 }
 .history-item {
     width: 100%;
-    padding: 8px 12px;
-    font-size: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
     font-family: inherit;
     text-align: left;
     background: none;
@@ -640,8 +790,8 @@ img { display: block; max-width: 100%; }
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border-radius: var(--radius-md);
     box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.85), var(--shadow-lg);
-    padding: 10px 14px;
-    font-size: 13px;
+    padding: var(--space-3) var(--space-4);
+    font-size: 14px;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -686,6 +836,7 @@ img { display: block; max-width: 100%; }
     .tutorial-keyhint { display: none; }
     .nav-btn-label { display: none; }
     .nav-tutorial-btn { width: 36px; padding: 0; }
+    .nav-actions { gap: var(--space-2); }
 }
 
 /* ═══════════════════════════════════════
@@ -704,7 +855,7 @@ img { display: block; max-width: 100%; }
 .tutorial-backdrop {
     position: fixed;
     inset: 0;
-    background: color-mix(in srgb, var(--color-neutral-900) 55%, transparent);
+    background: rgba(0, 0, 0, 0.35);
     z-index: 1000;
 }
 .tutorial-target {
@@ -713,7 +864,7 @@ img { display: block; max-width: 100%; }
     border-radius: var(--radius-lg);
     outline: 3px solid var(--color-accent);
     outline-offset: 3px;
-    box-shadow: var(--shadow-lg), 0 0 0 8px color-mix(in srgb, var(--color-accent) 20%, transparent);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14), 0 0 0 8px rgba(0, 136, 255, 0.20);
     /* No background override here — every target already has its own opaque
        background (`.card`, `.btn-copy`, its `.mobile-bar` ancestor…), and
        forcing one here previously stomped colored buttons like the accent
@@ -726,12 +877,15 @@ img { display: block; max-width: 100%; }
 .tutorial-panel {
     z-index: 1002;
     box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(28px) saturate(180%);
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     border-radius: var(--radius-lg);
-    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.85), var(--shadow-lg);
-    padding: var(--space-4);
+    box-shadow:
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.85),
+        0 2px 6px rgba(0, 0, 0, 0.10),
+        0 14px 30px rgba(0, 0, 0, 0.18);
+    padding: 18px;
     animation: medgenFadeUp 0.25s ease both;
 }
 /* No-target (welcome/finish) steps: a fixed overlay centered on all four
@@ -749,12 +903,13 @@ img { display: block; max-width: 100%; }
     margin: auto;
     width: calc(100% - 2rem);
     max-width: 440px;
+    padding: var(--space-4) calc(var(--space-4) + var(--space-1));
     /* Without this, `height: auto` + top and bottom both set stretches the
        box to fill the available space (per the abspos auto-height algorithm)
        instead of shrinking to the panel's actual content — `fit-content`
        forces shrink-to-fit so `margin: auto` centers a content-sized box. */
     height: fit-content;
-    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--space-4) + var(--space-1) + env(safe-area-inset-bottom, 0px));
 }
 /* Per-target steps: rendered as the spotlighted card's own last child (see
    `view_tour_panel` in main.rs), so `position: absolute` resolves against
@@ -762,6 +917,15 @@ img { display: block; max-width: 100%; }
    measurement needed — moving to a new step unmounts this one and mounts a
    fresh copy at the new card, which is what makes the entrance animation
    above replay on every step rather than needing a top/left transition. */
+/* Anchored panels carry a near-opaque surface where the centered one can
+   stay at 0.72: a backdrop-filter only samples as far back as the nearest
+   ancestor render surface, and these live *inside* the spotlighted card,
+   whose `z-index: 1001` is exactly that boundary. The blur therefore picks
+   up nothing but the card's own white background, and the card behind the
+   panel would read straight through the glass. The centered panel has no
+   such ancestor, so its blur works and it keeps the design's alpha.
+   Don't lower this to match — check it against a step whose panel overlaps
+   the next card (STEP 02's, over STEP 03) before touching it. */
 .tutorial-panel-below,
 .tutorial-panel-above {
     position: absolute;
@@ -769,6 +933,7 @@ img { display: block; max-width: 100%; }
     width: 100%;
     max-width: 400px;
     z-index: 1002;
+    background: rgba(255, 255, 255, 0.94);
 }
 .tutorial-panel-below { top: calc(100% + var(--space-4)); }
 .tutorial-panel-above { bottom: calc(100% + var(--space-4)); }
@@ -788,7 +953,7 @@ img { display: block; max-width: 100%; }
 .tutorial-progress {
     font-size: 12px;
     font-weight: 600;
-    color: var(--color-neutral-700);
+    color: var(--color-text-secondary);
 }
 .tutorial-close {
     background: var(--color-fill);
@@ -796,7 +961,7 @@ img { display: block; max-width: 100%; }
     border-radius: 50%;
     width: 28px;
     height: 28px;
-    color: var(--color-neutral-700);
+    color: var(--color-text-secondary);
     cursor: pointer;
     padding: 4px;
     display: flex;
@@ -808,26 +973,34 @@ img { display: block; max-width: 100%; }
     font-family: var(--font-heading);
     font-weight: var(--font-heading-weight);
     font-size: 17px;
-    margin: var(--space-2) 0 var(--space-1);
+    line-height: 22px;
+    margin: 10px 0 var(--space-1);
+}
+/* The centered welcome/outro panel has no spotlit card competing with it,
+   so its title steps up to the kit's next heading size. */
+.tutorial-panel-centered .tutorial-title {
+    font-size: 20px;
+    line-height: 25px;
+    margin: var(--space-3) 0 6px;
 }
 .tutorial-body {
-    font-size: 14px;
-    line-height: 1.5;
-    color: color-mix(in srgb, var(--color-text) 75%, transparent);
+    font-size: 15px;
+    line-height: 20px;
+    color: rgba(60, 60, 67, 0.75);
     margin: 0;
 }
 .tutorial-note {
     font-size: 12px;
-    line-height: 1.4;
-    color: color-mix(in srgb, var(--color-text) 50%, transparent);
+    line-height: 16px;
+    color: var(--color-text-muted);
     font-style: italic;
-    margin: 6px 0 0;
+    margin: var(--space-2) 0 0;
 }
 .tutorial-dots {
     display: flex;
     justify-content: center;
     gap: 6px;
-    margin-top: var(--space-3);
+    margin-top: 14px;
 }
 .tutorial-dot {
     width: 8px;
@@ -836,7 +1009,7 @@ img { display: block; max-width: 100%; }
     border: none;
     border-radius: var(--radius-capsule);
     cursor: pointer;
-    background: var(--color-fill-strong);
+    background: rgba(118, 118, 128, 0.24);
 }
 .tutorial-dot.active {
     width: 20px;
@@ -846,7 +1019,7 @@ img { display: block; max-width: 100%; }
     display: flex;
     justify-content: space-between;
     gap: var(--space-2);
-    margin-top: var(--space-3);
+    margin-top: 14px;
 }
 .tutorial-controls .btn { flex: 1; min-height: 46px; }
 .tutorial-controls-spacer { flex: 1; }
@@ -854,8 +1027,8 @@ img { display: block; max-width: 100%; }
     text-align: center;
     font-size: 11px;
     line-height: 1.4;
-    color: color-mix(in srgb, var(--color-text) 40%, transparent);
-    margin-top: var(--space-2);
+    color: var(--color-text-tertiary);
+    margin-top: 10px;
 }
 
 /* ═══════════════════════════════════════
@@ -869,16 +1042,23 @@ img { display: block; max-width: 100%; }
     position: absolute;
     width: 240px;
     box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(28px) saturate(180%);
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     border-radius: var(--radius-lg);
-    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.85), var(--shadow-lg);
-    padding: var(--space-3);
+    box-shadow:
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.85),
+        0 2px 6px rgba(0, 0, 0, 0.10),
+        0 14px 30px rgba(0, 0, 0, 0.18);
+    padding: 14px;
     z-index: 600;
     text-align: left;
     animation: medgenFadeUp 0.25s ease both;
 }
+/* Same constraint as the anchored tour panels above: a coach mark is a
+   child of the control it points at, so its blur has nothing to sample and
+   whatever it covers would show through unblurred. */
+.coach-mark { background: rgba(255, 255, 255, 0.94); }
 .coach-mark-history {
     top: calc(100% + var(--space-2));
     right: 0;
@@ -890,11 +1070,11 @@ img { display: block; max-width: 100%; }
 }
 .coach-mark-text {
     font-size: 13px;
-    line-height: 1.5;
-    margin: 0 0 var(--space-2);
+    line-height: 18px;
+    margin: 0 0 10px;
 }
 .coach-mark-dismiss {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--color-accent);
     background: none;
@@ -914,8 +1094,8 @@ img { display: block; max-width: 100%; }
     animation: medgenPulseRing 0.9s ease-out 2;
 }
 @keyframes medgenPulseRing {
-    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent); }
-    100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent); }
+    0% { box-shadow: 0 0 0 0 rgba(0, 136, 255, 0.45); }
+    100% { box-shadow: 0 0 0 16px rgba(0, 136, 255, 0); }
 }
 
 /* ═══════════════════════════════════════
@@ -933,6 +1113,25 @@ img { display: block; max-width: 100%; }
     from { opacity: 0; transform: translateY(-8px); max-height: 0; }
     to { opacity: 1; transform: translateY(0); max-height: 600px; }
 }
+@keyframes medgenSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+/* Overshoot-and-settle — the kit's arrival curve for anything that pops
+   into existence: status chips, ticks, the segmented control's thumb. */
+@keyframes medgenBounceIn {
+    0% { transform: scale(0.55); opacity: 0; }
+    60% { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+/* The dock bounce, borrowed for the copied-state button. */
+@keyframes medgenDockBounce {
+    0% { transform: translateY(0) scale(1); }
+    30% { transform: translateY(-10px) scale(1.05); }
+    55% { transform: translateY(0) scale(0.97); }
+    75% { transform: translateY(-4px) scale(1.02); }
+    100% { transform: translateY(0) scale(1); }
+}
 
 .anim-in { animation: medgenFadeUp 0.4s ease both; }
 .anim-in-2 { animation-duration: 0.45s; }
@@ -941,10 +1140,29 @@ img { display: block; max-width: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
     .anim-in { animation: none; }
-    .docs-list { animation: none; }
+    .docs-list,
+    .docs-empty { animation: none; }
     .toast-bar { animation: none; width: 100%; }
     .history-chevron { transition: none; }
     .tutorial-panel { animation: none; }
     .coach-mark { animation: none; }
     .copy-pulse-ring { animation: none; }
+    .tag-accent,
+    .tab-btn.active,
+    .opt-btn.selected,
+    .doc-item.checked .check-box,
+    .btn-copy.copied { animation: none; }
+    .btn,
+    .opt-btn,
+    .tab-btn { transition: none; }
+    .btn:hover,
+    .btn:active,
+    .btn-glass:hover,
+    .btn-glass:active,
+    .nav-icon-btn:hover,
+    .nav-icon-btn:active,
+    .opt-btn:active,
+    .tab-btn:active,
+    .btn-copy:hover:not(:disabled),
+    .btn-copy:active:not(:disabled) { transform: none; }
 }
