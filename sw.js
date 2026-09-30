@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════════
 
 // 快取版本號（每次更新內容時遞增此值）
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `medgen-cache-${CACHE_VERSION}`;
 
 // 預快取的核心資源（安裝時一次性快取）

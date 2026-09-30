@@ -86,6 +86,10 @@
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 14px;
+    /* Cards are the one surface on the larger radius — the prototype's
+       frosted panels float over the drifting background at 22px, while
+       popovers, the toast and tour panels stay on --radius-lg. */
+    --radius-card: 22px;
     --radius-capsule: 999px;
 
     /* Elevation — soft, wide-blur shadows on the light ground, plus a
@@ -222,9 +226,29 @@ img { display: block; max-width: 100%; }
     flex-direction: column;
     gap: 10px;
     padding: var(--space-4);
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04), var(--shadow-sm);
+    border-radius: var(--radius-card);
+    /* Liquid Glass, like the nav: a translucent white pane blurring the
+       .app-bg blobs behind it. The lit top edge and hairline rim give the
+       pane thickness; the outer 0.5px ring and wide shadow separate it from
+       the #f2f2f7 ground where no blob is passing underneath. */
+    background: rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        inset 0 0 0 0.5px rgba(255, 255, 255, 0.6),
+        0 0 0 0.5px rgba(0, 0, 0, 0.06),
+        0 2px 6px rgba(0, 0, 0, 0.04),
+        0 14px 36px rgba(0, 0, 0, 0.08);
+}
+/* backdrop-filter makes every card its own stacking context, painted in
+   tree order — so a popover inside one card (STEP 01's 最近使用 dropdown,
+   the result card's shortcut coach mark) would be painted *under* the next
+   card no matter its own z-index. Lift just the card that currently hosts
+   one. The spotlit card is excluded: its .tutorial-target z-index must win. */
+.card:not(.tutorial-target):has(.name-suggestions, .coach-mark) {
+    position: relative;
+    z-index: 2;
 }
 .card-kicker {
     font-size: 12px;
@@ -372,15 +396,57 @@ img { display: block; max-width: 100%; }
     color: var(--color-text);
     display: flex;
     flex-direction: column;
+    /* Contains .app-bg's z-index: -1 so the blobs paint above this ground
+       colour but below everything else, instead of escaping behind <body>. */
+    position: relative;
+    isolation: isolate;
+}
+
+/* Drifting color field behind the glass — three large blurred radial blobs
+   (accent blue, indigo, mint) that give the translucent cards and nav
+   something to refract. Fixed to the viewport so scrolling doesn't reveal
+   an edge; purely decorative and hidden from assistive tech in main.rs. */
+.app-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+.app-bg-blob {
+    position: absolute;
+    width: 60vmax;
+    height: 60vmax;
+    border-radius: 50%;
+    filter: blur(40px);
+    will-change: transform;
+}
+.app-bg-blob-a {
+    top: -25vmax;
+    left: -20vmax;
+    background: radial-gradient(circle at center, rgba(0, 136, 255, 0.28) 0%, transparent 65%);
+    animation: medgenBlobA 22s ease-in-out infinite alternate;
+}
+.app-bg-blob-b {
+    top: -10vmax;
+    right: -25vmax;
+    background: radial-gradient(circle at center, rgba(97, 85, 245, 0.22) 0%, transparent 65%);
+    animation: medgenBlobB 26s ease-in-out infinite alternate;
+}
+.app-bg-blob-c {
+    bottom: -30vmax;
+    left: 20vw;
+    background: radial-gradient(circle at center, rgba(0, 200, 179, 0.22) 0%, transparent 65%);
+    animation: medgenBlobC 30s ease-in-out infinite alternate;
 }
 .app-layout {
     flex: 1;
     max-width: 1080px;
     margin: 0 auto;
     width: 100%;
-    padding: var(--space-6) var(--space-4) var(--space-8);
+    padding: var(--space-6) var(--space-4) 64px;
     display: flex;
-    gap: var(--space-6);
+    gap: var(--space-4);
     align-items: flex-start;
     flex-wrap: nowrap;
 }
@@ -568,8 +634,10 @@ img { display: block; max-width: 100%; }
    Preview + copy
    ═══════════════════════════════════════ */
 .preview-box {
-    background: var(--color-fill-soft);
-    border-radius: var(--radius-md);
+    /* A lighter pane set into the glass card rather than a gray well — the
+       recessed fill would read muddy over the translucent surface. */
+    background: rgba(255, 255, 255, 0.45);
+    border-radius: var(--radius-lg);
     padding: 14px var(--space-4);
     min-height: 3.4rem;
     display: flex;
@@ -861,7 +929,8 @@ img { display: block; max-width: 100%; }
 .tutorial-target {
     position: relative;
     z-index: 1001;
-    border-radius: var(--radius-lg);
+    /* No border-radius here: the outline follows each target's own corners —
+       22px on a card, a capsule on the mobile copy button. */
     outline: 3px solid var(--color-accent);
     outline-offset: 3px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14), 0 0 0 8px rgba(0, 136, 255, 0.20);
@@ -1124,6 +1193,22 @@ img { display: block; max-width: 100%; }
     60% { transform: scale(1.12); opacity: 1; }
     100% { transform: scale(1); opacity: 1; }
 }
+/* Background blobs — slow drifts, alternated so they ease back and forth. */
+@keyframes medgenBlobA {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(18vw, 12vh) scale(1.15); }
+    100% { transform: translate(6vw, 28vh) scale(0.95); }
+}
+@keyframes medgenBlobB {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-22vw, 18vh) scale(0.9); }
+    100% { transform: translate(-8vw, -6vh) scale(1.1); }
+}
+@keyframes medgenBlobC {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(14vw, -20vh) scale(1.12); }
+    100% { transform: translate(-16vw, -8vh) scale(1); }
+}
 /* The dock bounce, borrowed for the copied-state button. */
 @keyframes medgenDockBounce {
     0% { transform: translateY(0) scale(1); }
@@ -1140,6 +1225,7 @@ img { display: block; max-width: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
     .anim-in { animation: none; }
+    .app-bg-blob { animation: none; }
     .docs-list,
     .docs-empty { animation: none; }
     .toast-bar { animation: none; width: 100%; }

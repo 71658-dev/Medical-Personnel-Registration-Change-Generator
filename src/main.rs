@@ -1136,6 +1136,13 @@ impl Component for App {
 
         html! {
             <div class="app-shell">
+                // Decorative color field the glass surfaces blur (see
+                // `.app-bg` in style.css).
+                <div class="app-bg" aria-hidden="true">
+                    <div class="app-bg-blob app-bg-blob-a"></div>
+                    <div class="app-bg-blob app-bg-blob-b"></div>
+                    <div class="app-bg-blob app-bg-blob-c"></div>
+                </div>
                 // ─── Header ───
                 <header class="nav">
                     <span class="nav-brand">{"醫事人員執業異動文字產生器"}</span>
