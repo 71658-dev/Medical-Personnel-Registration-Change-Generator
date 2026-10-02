@@ -101,6 +101,7 @@ const ITEM_DOC_CODES: &[ItemDocs] = &[
     ItemDocs { item_id: "lost_reissue", codes: &[2, 7, 9, 10, 11] },
     ItemDocs { item_id: "damage_reissue", codes: &[2, 7, 8, 10, 11] },
     ItemDocs { item_id: "renew", codes: &[1, 2, 7, 8, 10, 11, 12] },
+    ItemDocs { item_id: "seniority_cert", codes: &[2, 7] },
 ];
 
 /// Documents an item only needs for certain 申請類別.
