@@ -54,6 +54,7 @@ const ITEMS: &[Item] = &[
     Item { id: "lost_reissue", label: "遺失補發" },
     Item { id: "damage_reissue", label: "損壞補發" },
     Item { id: "renew", label: "到期換發" },
+    Item { id: "seniority_cert", label: "年資證明" },
 ];
 
 /// 應備文件 master list. The numeric `code` is the stable identity — the
