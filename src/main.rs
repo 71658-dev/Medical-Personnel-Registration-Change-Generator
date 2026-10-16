@@ -9,53 +9,133 @@ use yew::prelude::*;
 // ═══════════════════════════════════════════════════
 // DATA TYPES
 // ═══════════════════════════════════════════════════
-struct Category {
+struct CategoryDef {
     id: &'static str,
     label: &'static str,
     group: &'static str,
 }
 
-const CATEGORIES: &[Category] = &[
-    Category { id: "physician", label: "醫師", group: "醫政科" },
-    Category { id: "tcm_physician", label: "中醫師", group: "醫政科" },
-    Category { id: "dentist", label: "牙醫師", group: "醫政科" },
-    Category { id: "nurse", label: "護理師(護士)", group: "醫政科" },
-    Category { id: "midwife", label: "助產師(士)", group: "醫政科" },
-    Category { id: "pharmacist", label: "藥師", group: "食藥科" },
-    Category { id: "assistant_pharmacist", label: "藥劑生", group: "食藥科" },
-    Category { id: "medical_technologist", label: "醫事檢驗師(生)", group: "醫政科" },
-    Category { id: "medical_radiation", label: "醫事放射師(士)", group: "醫政科" },
-    Category { id: "dental_technologist", label: "牙體技術師(生)", group: "醫政科" },
-    Category { id: "optometrist", label: "驗光師(生)", group: "醫政科" },
-    Category { id: "physical_therapist", label: "物理治療師(生)", group: "醫政科" },
-    Category { id: "occupational_therapist", label: "職能治療師(生)", group: "醫政科" },
-    Category { id: "speech_therapist", label: "語言治療師", group: "醫政科" },
-    Category { id: "audiologist", label: "聽力師", group: "醫政科" },
-    Category { id: "respiratory_therapist", label: "呼吸治療師", group: "醫政科" },
-    Category { id: "clinical_psychologist", label: "臨床心理師", group: "心健科" },
-    Category { id: "counseling_psychologist", label: "諮商心理師", group: "心健科" },
-    Category { id: "nutritionist", label: "營養師", group: "食藥科" },
+const DEFAULT_CATEGORIES: &[CategoryDef] = &[
+    CategoryDef { id: "physician", label: "醫師", group: "醫政科" },
+    CategoryDef { id: "tcm_physician", label: "中醫師", group: "醫政科" },
+    CategoryDef { id: "dentist", label: "牙醫師", group: "醫政科" },
+    CategoryDef { id: "nurse", label: "護理師(護士)", group: "醫政科" },
+    CategoryDef { id: "midwife", label: "助產師(士)", group: "醫政科" },
+    CategoryDef { id: "pharmacist", label: "藥師", group: "食藥科" },
+    CategoryDef { id: "assistant_pharmacist", label: "藥劑生", group: "食藥科" },
+    CategoryDef { id: "medical_technologist", label: "醫事檢驗師(生)", group: "醫政科" },
+    CategoryDef { id: "medical_radiation", label: "醫事放射師(士)", group: "醫政科" },
+    CategoryDef { id: "dental_technologist", label: "牙體技術師(生)", group: "醫政科" },
+    CategoryDef { id: "optometrist", label: "驗光師(生)", group: "醫政科" },
+    CategoryDef { id: "physical_therapist", label: "物理治療師(生)", group: "醫政科" },
+    CategoryDef { id: "occupational_therapist", label: "職能治療師(生)", group: "醫政科" },
+    CategoryDef { id: "speech_therapist", label: "語言治療師", group: "醫政科" },
+    CategoryDef { id: "audiologist", label: "聽力師", group: "醫政科" },
+    CategoryDef { id: "respiratory_therapist", label: "呼吸治療師", group: "醫政科" },
+    CategoryDef { id: "clinical_psychologist", label: "臨床心理師", group: "心健科" },
+    CategoryDef { id: "counseling_psychologist", label: "諮商心理師", group: "心健科" },
+    CategoryDef { id: "nutritionist", label: "營養師", group: "食藥科" },
 ];
 
-struct Item {
+struct ItemDef {
     id: &'static str,
     label: &'static str,
 }
 
-const ITEMS: &[Item] = &[
-    Item { id: "register", label: "執業(現歇業)登記" },
-    Item { id: "suspend", label: "停業登記" },
-    Item { id: "resume", label: "復業(現停業)登記" },
-    Item { id: "cessation", label: "歇業(離職)登記" },
-    Item { id: "dept_change", label: "(科別)變更" },
-    Item { id: "name_change", label: "(姓名)變更" },
-    Item { id: "inst_change", label: "機構變更" },
-    Item { id: "cat_change", label: "類別變更" },
-    Item { id: "lost_reissue", label: "遺失補發" },
-    Item { id: "damage_reissue", label: "損壞補發" },
-    Item { id: "renew", label: "到期換發" },
-    Item { id: "seniority_cert", label: "年資證明" },
+const DEFAULT_ITEMS: &[ItemDef] = &[
+    ItemDef { id: "register", label: "執業(現歇業)登記" },
+    ItemDef { id: "suspend", label: "停業登記" },
+    ItemDef { id: "resume", label: "復業(現停業)登記" },
+    ItemDef { id: "cessation", label: "歇業(離職)登記" },
+    ItemDef { id: "dept_change", label: "(科別)變更" },
+    ItemDef { id: "name_change", label: "(姓名)變更" },
+    ItemDef { id: "inst_change", label: "機構變更" },
+    ItemDef { id: "cat_change", label: "類別變更" },
+    ItemDef { id: "lost_reissue", label: "遺失補發" },
+    ItemDef { id: "damage_reissue", label: "損壞補發" },
+    ItemDef { id: "renew", label: "到期換發" },
+    ItemDef { id: "seniority_cert", label: "年資證明" },
 ];
+
+/// Runtime 申請類別 — the user can add/edit/delete these (see the editor
+/// sheet), so the live list is owned by `App` and persisted under
+/// `STORAGE_CATEGORIES`; `DEFAULT_CATEGORIES` only seeds it. `id` is the
+/// stable identity (`ITEM_CONDITIONAL_DOC_CODES` and the tour demo key on it),
+/// so relabelling a default keeps its document rules.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
+struct Category {
+    id: String,
+    label: String,
+    group: String,
+}
+
+/// Runtime 申請項目 — same arrangement as `Category`; `ITEM_DOC_CODES` keys on
+/// `id`, so a user-added item simply has no item-specific 應備文件.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
+struct Item {
+    id: String,
+    label: String,
+}
+
+const STORAGE_CATEGORIES: &str = "medgen_categories";
+const STORAGE_ITEMS: &str = "medgen_items";
+/// Caps for both the editor and the load-time guard.
+const MAX_LIST_LEN: usize = 100;
+const MAX_LABEL_CHARS: usize = 30;
+const MAX_GROUP_CHARS: usize = 10;
+
+fn default_categories() -> Vec<Category> {
+    DEFAULT_CATEGORIES
+        .iter()
+        .map(|c| Category { id: c.id.to_string(), label: c.label.to_string(), group: c.group.to_string() })
+        .collect()
+}
+
+fn default_items() -> Vec<Item> {
+    DEFAULT_ITEMS
+        .iter()
+        .map(|i| Item { id: i.id.to_string(), label: i.label.to_string() })
+        .collect()
+}
+
+/// Loads the saved 申請類別, re-validating like the other stored keys: drops
+/// blank/oversized/duplicate-id rows, caps the length, and falls back to the
+/// defaults when nothing usable is stored.
+fn load_categories() -> Vec<Category> {
+    let mut seen = HashSet::new();
+    let list: Vec<Category> = LocalStorage::get::<Vec<Category>>(STORAGE_CATEGORIES)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|c| {
+            !c.id.is_empty()
+                && c.id.len() <= 64
+                && !c.label.trim().is_empty()
+                && c.label.chars().count() <= MAX_LABEL_CHARS
+                && !c.group.trim().is_empty()
+                && c.group.chars().count() <= MAX_GROUP_CHARS
+                && seen.insert(c.id.clone())
+        })
+        .take(MAX_LIST_LEN)
+        .collect();
+    if list.is_empty() { default_categories() } else { list }
+}
+
+fn load_items() -> Vec<Item> {
+    let mut seen = HashSet::new();
+    let list: Vec<Item> = LocalStorage::get::<Vec<Item>>(STORAGE_ITEMS)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|i| {
+            !i.id.is_empty()
+                && i.id.len() <= 64
+                && !i.label.trim().is_empty()
+                && i.label.chars().count() <= MAX_LABEL_CHARS
+                && seen.insert(i.id.clone())
+        })
+        .take(MAX_LIST_LEN)
+        .collect();
+    if list.is_empty() { default_items() } else { list }
+}
 
 /// 應備文件 master list. The numeric `code` is the stable identity — the
 /// per-item tables below reference documents by code, and `checked_docs`
@@ -242,6 +322,8 @@ fn get_generated_text(
     name: &str,
     category_id: &Option<String>,
     selected_items: &[String],
+    categories: &[Category],
+    items: &[Item],
     placeholder_mode: bool,
 ) -> (String, bool) {
     let name_trimmed = name.trim();
@@ -251,25 +333,20 @@ fn get_generated_text(
         name_trimmed
     };
 
-    let cleaned_category = if let Some(cat_id) = category_id {
-        if let Some(cat) = CATEGORIES.iter().find(|c| c.id == cat_id) {
-            clean_parentheses(cat.label)
-        } else {
-            if placeholder_mode { "（請選擇類別）".to_string() } else { "".to_string() }
-        }
-    } else {
+    let category_label = category_id
+        .as_ref()
+        .and_then(|cat_id| categories.iter().find(|c| &c.id == cat_id))
+        .map(|cat| clean_parentheses(&cat.label))
+        .filter(|s| !s.is_empty());
+    let has_category = category_label.is_some();
+    let cleaned_category = category_label.unwrap_or_else(|| {
         if placeholder_mode { "（請選擇類別）".to_string() } else { "".to_string() }
-    };
+    });
 
     let cleaned_items_list: Vec<String> = selected_items
         .iter()
-        .map(|id| {
-            if let Some(item) = ITEMS.iter().find(|i| i.id == id) {
-                clean_parentheses(item.label)
-            } else {
-                "".to_string()
-            }
-        })
+        .filter_map(|id| items.iter().find(|i| &i.id == id))
+        .map(|item| clean_parentheses(&item.label))
         .filter(|s| !s.is_empty())
         .collect();
 
@@ -279,7 +356,10 @@ fn get_generated_text(
         cleaned_items_list.join("、")
     };
 
-    let is_complete = !name_trimmed.is_empty() && category_id.is_some() && !selected_items.is_empty();
+    // Judged on what actually resolved, not on the raw selections: a label
+    // that cleans down to nothing (e.g. a user-entered "(備註)") must not
+    // count as a filled field.
+    let is_complete = !name_trimmed.is_empty() && has_category && !cleaned_items_list.is_empty();
 
     let text = format!("{}申辦{}{}", display_name, cleaned_category, items_text);
     (text, is_complete)
@@ -388,11 +468,55 @@ enum Msg {
     // see `schedule_tour_demo` for why a stale one is a silent no-op.
     DemoTypeName(u32, usize),
     DemoSelectCategory(u32),
-    DemoToggleItem(u32, &'static str),
+    DemoToggleItem(u32, usize),
     DemoPulseCopyOff(u32),
     DemoCheckDoc(u32, usize),
     DismissHistoryCoach,
     DismissShortcutCoach,
+    OpenEditor(EditorKind),
+    CloseEditor,
+    EditorAddRow,
+    EditorUpdateLabel(usize, String),
+    EditorUpdateGroup(usize, String),
+    EditorMoveRow(usize, bool),
+    EditorDeleteRow(usize),
+    EditorResetDefaults,
+    EditorSave,
+}
+
+/// Which list the editor sheet is working on.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EditorKind {
+    Categories,
+    Items,
+}
+
+impl EditorKind {
+    fn noun(self) -> &'static str {
+        match self {
+            EditorKind::Categories => "申請類別",
+            EditorKind::Items => "申請項目",
+        }
+    }
+}
+
+/// One editable row. `group` is unused for items.
+#[derive(Clone, PartialEq)]
+struct EditorRow {
+    id: String,
+    label: String,
+    group: String,
+}
+
+/// Draft state of the open editor sheet. Edits stay here until 儲存, so
+/// 取消 (or Esc / backdrop) throws the whole session away.
+struct EditorState {
+    kind: EditorKind,
+    rows: Vec<EditorRow>,
+    error: Option<String>,
+    // Suffix for new rows' ids, so two rows added in the same millisecond
+    // still get distinct ids.
+    next_seq: u32,
 }
 
 /// Snapshot of the three form fields (plus the incidental filter/checklist
@@ -412,6 +536,12 @@ struct FormSnapshot {
 }
 
 struct App {
+    // User-editable option lists (see `Category`/`Item`).
+    categories: Vec<Category>,
+    items: Vec<Item>,
+    editor: Option<EditorState>,
+    // Set by EditorAddRow so `rendered` focuses (and scrolls to) the new row.
+    editor_focus_last: bool,
     applicant_name: String,
     selected_category: Option<String>,
     selected_items: Vec<String>,
@@ -504,6 +634,8 @@ impl Component for App {
                 event.prevent_default();
                 link.send_message(Msg::CopyText);
             } else if event.key() == "Escape" {
+                // Both idempotent; at most one of the two is ever open.
+                link.send_message(Msg::CloseEditor);
                 link.send_message(Msg::TutorialSkip);
             } else {
                 match event.key().as_str() {
@@ -548,6 +680,10 @@ impl Component for App {
         }
 
         Self {
+            categories: load_categories(),
+            items: load_items(),
+            editor: None,
+            editor_focus_last: false,
             applicant_name: String::new(),
             selected_category: None,
             selected_items: Vec::new(),
@@ -645,7 +781,7 @@ impl Component for App {
                 // has on screen (or of the user's still-mid-edit real data)
                 // isn't something either side asked for, so this stays inert
                 // for the duration of the tour.
-                if self.tutorial_step.is_some() {
+                if self.tutorial_step.is_some() || self.editor.is_some() {
                     return false;
                 }
                 // Perform checks
@@ -680,6 +816,8 @@ impl Component for App {
                     &self.applicant_name,
                     &self.selected_category,
                     &self.selected_items,
+                    &self.categories,
+                    &self.items,
                     false,
                 );
 
@@ -751,6 +889,8 @@ impl Component for App {
                     &self.applicant_name,
                     &self.selected_category,
                     &self.selected_items,
+                    &self.categories,
+                    &self.items,
                     false,
                 );
                 if !is_complete || text == self.last_copied_text {
@@ -953,16 +1093,27 @@ impl Component for App {
                 if gen != self.demo_gen {
                     return false;
                 }
-                self.selected_category = Some(TOUR_DEMO_CATEGORY.to_string());
-                self.selected_items.clear();
+                // The user may have deleted or never had 醫師 — fall back to
+                // whatever comes first so the demo still has something to pick.
+                let cat = self
+                    .categories
+                    .iter()
+                    .find(|c| c.id == TOUR_DEMO_CATEGORY)
+                    .or_else(|| self.categories.first());
+                if let Some(cat) = cat {
+                    self.selected_category = Some(cat.id.clone());
+                    self.selected_items.clear();
+                }
                 true
             }
-            Msg::DemoToggleItem(gen, item_id) => {
+            Msg::DemoToggleItem(gen, which) => {
                 if gen != self.demo_gen {
                     return false;
                 }
-                if !self.selected_items.iter().any(|x| x == item_id) {
-                    self.selected_items.push(item_id.to_string());
+                if let Some(item_id) = self.tour_demo_item_ids().into_iter().nth(which) {
+                    if !self.selected_items.contains(&item_id) {
+                        self.selected_items.push(item_id);
+                    }
                 }
                 true
             }
@@ -993,10 +1144,127 @@ impl Component for App {
                 let _ = LocalStorage::set("medgen_shortcut_coach_seen", &true);
                 true
             }
+            Msg::OpenEditor(kind) => {
+                // The tour owns the screen while it runs (and restores a form
+                // snapshot keyed on these lists' ids when it closes).
+                if self.tutorial_step.is_some() {
+                    return false;
+                }
+                self.open_editor(kind);
+                self.name_suggestions_open = false;
+                true
+            }
+            Msg::CloseEditor => self.editor.take().is_some(),
+            Msg::EditorAddRow => {
+                let tab = self.selected_group_tab.clone();
+                let Some(editor) = self.editor.as_mut() else { return false };
+                if editor.rows.len() >= MAX_LIST_LEN {
+                    editor.error = Some(format!("最多只能有 {} 個{}", MAX_LIST_LEN, editor.kind.noun()));
+                    return true;
+                }
+                // New categories land in the tab the user is looking at, or
+                // in the last row's group — the likeliest intent either way.
+                let group = if editor.kind == EditorKind::Categories {
+                    if tab != "全部" {
+                        tab
+                    } else {
+                        editor.rows.last().map(|r| r.group.clone()).unwrap_or_else(|| "醫政科".to_string())
+                    }
+                } else {
+                    String::new()
+                };
+                editor.next_seq += 1;
+                editor.rows.push(EditorRow {
+                    id: format!("custom_{}_{}", js_sys::Date::now() as u64, editor.next_seq),
+                    label: String::new(),
+                    group,
+                });
+                editor.error = None;
+                self.editor_focus_last = true;
+                true
+            }
+            Msg::EditorUpdateLabel(idx, value) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                if let Some(row) = editor.rows.get_mut(idx) {
+                    row.label = value;
+                }
+                editor.error = None;
+                true
+            }
+            Msg::EditorUpdateGroup(idx, value) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                if let Some(row) = editor.rows.get_mut(idx) {
+                    row.group = value;
+                }
+                editor.error = None;
+                true
+            }
+            Msg::EditorMoveRow(idx, up) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                let target = if up { idx.checked_sub(1) } else { Some(idx + 1) };
+                match target {
+                    Some(t) if t < editor.rows.len() && idx < editor.rows.len() => {
+                        editor.rows.swap(idx, t);
+                        true
+                    }
+                    _ => false,
+                }
+            }
+            Msg::EditorDeleteRow(idx) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                if idx < editor.rows.len() {
+                    editor.rows.remove(idx);
+                }
+                editor.error = None;
+                true
+            }
+            Msg::EditorResetDefaults => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                editor.rows = match editor.kind {
+                    EditorKind::Categories => default_categories()
+                        .into_iter()
+                        .map(|c| EditorRow { id: c.id, label: c.label, group: c.group })
+                        .collect(),
+                    EditorKind::Items => default_items()
+                        .into_iter()
+                        .map(|i| EditorRow { id: i.id, label: i.label, group: String::new() })
+                        .collect(),
+                };
+                editor.error = None;
+                true
+            }
+            Msg::EditorSave => {
+                match self.save_editor(ctx) {
+                    Ok(kind) => {
+                        self.toast = Some(ToastState {
+                            message: format!("已儲存{}", kind.noun()),
+                            is_error: false,
+                        });
+                        self.schedule_toast_clear(ctx);
+                    }
+                    Err(message) => {
+                        if let Some(editor) = self.editor.as_mut() {
+                            editor.error = Some(message);
+                        }
+                    }
+                }
+                true
+            }
         }
     }
 
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+        if std::mem::take(&mut self.editor_focus_last) {
+            if let Some(input) = web_sys::window()
+                .and_then(|w| w.document())
+                .and_then(|d| d.query_selector(".editor-row:last-child .editor-input").ok().flatten())
+                .and_then(|el| el.dyn_into::<web_sys::HtmlInputElement>().ok())
+            {
+                // Focusing scrolls the overflowed list to the new row too.
+                let _ = input.focus();
+            }
+        }
+
         if let Some(idx) = self.tutorial_step {
             if self.tutorial_scrolled_step != Some(idx) {
                 self.tutorial_scrolled_step = Some(idx);
@@ -1057,6 +1325,8 @@ impl Component for App {
             &self.applicant_name,
             &self.selected_category,
             &self.selected_items,
+            &self.categories,
+            &self.items,
             true,
         );
 
@@ -1084,15 +1354,17 @@ impl Component for App {
             "待選擇".to_string()
         };
 
-        // Tab list is derived from the distinct `group` values in CATEGORIES
+        // Tab list is derived from the distinct `group` values in the live
+        // (user-editable) category list
         let mut group_tabs = vec!["全部"];
-        for cat in CATEGORIES {
-            if !group_tabs.contains(&cat.group) {
-                group_tabs.push(cat.group);
+        for cat in &self.categories {
+            if !group_tabs.contains(&cat.group.as_str()) {
+                group_tabs.push(cat.group.as_str());
             }
         }
 
-        let filtered_categories: Vec<&Category> = CATEGORIES
+        let filtered_categories: Vec<&Category> = self
+            .categories
             .iter()
             .filter(|cat| self.selected_group_tab == "全部" || cat.group == self.selected_group_tab)
             .collect();
@@ -1312,6 +1584,7 @@ impl Component for App {
                                     <div class="card-title">{"申請類別"}</div>
                                 </div>
                                 <div class="tag-group">
+                                    {self.view_edit_btn(ctx, EditorKind::Categories)}
                                     <span class="tag tag-outline tag-mode">{"單選"}</span>
                                     <span class={cat_tag_class}>{cat_tag_label}</span>
                                 </div>
@@ -1333,7 +1606,7 @@ impl Component for App {
                             </div>
                             <div class="cat-grid">
                                 {for filtered_categories.into_iter().map(|cat| {
-                                    let cat_id = cat.id.to_string();
+                                    let cat_id = cat.id.clone();
                                     let selected = self.selected_category.as_ref() == Some(&cat_id);
                                     html! {
                                         <button
@@ -1342,7 +1615,7 @@ impl Component for App {
                                             aria-pressed={if selected { "true" } else { "false" }}
                                             onclick={ctx.link().callback(move |_| Msg::SelectCategory(cat_id.clone()))}
                                         >
-                                            {cat.label}
+                                            {cat.label.clone()}
                                         </button>
                                     }
                                 })}
@@ -1358,13 +1631,14 @@ impl Component for App {
                                     <div class="card-title">{"申請項目"}</div>
                                 </div>
                                 <div class="tag-group">
+                                    {self.view_edit_btn(ctx, EditorKind::Items)}
                                     <span class="tag tag-outline tag-mode">{"複選"}</span>
                                     <span class={items_tag_class}>{items_tag_label}</span>
                                 </div>
                             </div>
                             <div class="items-grid">
-                                {for ITEMS.iter().map(|item| {
-                                    let item_id = item.id.to_string();
+                                {for self.items.iter().map(|item| {
+                                    let item_id = item.id.clone();
                                     let selected = self.selected_items.contains(&item_id);
                                     html! {
                                         <button
@@ -1384,7 +1658,7 @@ impl Component for App {
                                                     html! {}
                                                 }}
                                             </span>
-                                            {item.label}
+                                            {item.label.clone()}
                                         </button>
                                     }
                                 })}
@@ -1647,6 +1921,9 @@ impl Component for App {
                 } else {
                     html! {}
                 }}
+
+                // ─── Option editor sheet ───
+                {self.view_editor(ctx)}
             </div>
         }
     }
@@ -1665,6 +1942,8 @@ impl App {
             &self.applicant_name,
             &self.selected_category,
             &self.selected_items,
+            &self.categories,
+            &self.items,
             false,
         );
         if !is_complete || text == self.last_copied_text {
@@ -1682,6 +1961,126 @@ impl App {
         self.toast_timeout = Some(Timeout::new(2800, move || {
             link.send_message(Msg::HideToast);
         }));
+    }
+
+    /// The two items STEP 03's demo ticks: `TOUR_DEMO_ITEMS` where they still
+    /// exist, topped up from the front of the (user-editable) list otherwise.
+    fn tour_demo_item_ids(&self) -> Vec<String> {
+        let mut ids: Vec<String> = TOUR_DEMO_ITEMS
+            .iter()
+            .filter(|id| self.items.iter().any(|i| i.id == **id))
+            .map(|id| id.to_string())
+            .collect();
+        for item in &self.items {
+            if ids.len() >= TOUR_DEMO_ITEMS.len() {
+                break;
+            }
+            if !ids.contains(&item.id) {
+                ids.push(item.id.clone());
+            }
+        }
+        ids
+    }
+
+    /// Opens the editor sheet with a draft copy of the chosen list.
+    fn open_editor(&mut self, kind: EditorKind) {
+        let rows = match kind {
+            EditorKind::Categories => self
+                .categories
+                .iter()
+                .map(|c| EditorRow { id: c.id.clone(), label: c.label.clone(), group: c.group.clone() })
+                .collect(),
+            EditorKind::Items => self
+                .items
+                .iter()
+                .map(|i| EditorRow { id: i.id.clone(), label: i.label.clone(), group: String::new() })
+                .collect(),
+        };
+        self.editor = Some(EditorState { kind, rows, error: None, next_seq: 0 });
+    }
+
+    /// Validates the draft and, if it passes, makes it the live list:
+    /// persists it (or clears the key when it matches the defaults, so later
+    /// changes to the built-in tables still reach this browser), then drops
+    /// any selection that pointed at a deleted row. Returns the error message
+    /// on failure, leaving everything untouched.
+    fn save_editor(&mut self, ctx: &Context<Self>) -> Result<EditorKind, String> {
+        let Some(editor) = self.editor.as_ref() else { return Err(String::new()) };
+        let kind = editor.kind;
+        let noun = kind.noun();
+
+        if editor.rows.is_empty() {
+            return Err(format!("至少需要保留一個{}", noun));
+        }
+        let mut labels: HashSet<String> = HashSet::new();
+        let mut rows: Vec<EditorRow> = Vec::with_capacity(editor.rows.len());
+        for (n, row) in editor.rows.iter().enumerate() {
+            let label = row.label.trim().to_string();
+            let group = row.group.trim().to_string();
+            if label.is_empty() {
+                return Err(format!("第 {} 列的名稱不可空白", n + 1));
+            }
+            if label.chars().count() > MAX_LABEL_CHARS {
+                return Err(format!("「{}」超過 {} 個字", label, MAX_LABEL_CHARS));
+            }
+            if clean_parentheses(&label).is_empty() {
+                return Err(format!("「{}」去掉括號後沒有文字，無法產生主旨", label));
+            }
+            if !labels.insert(label.clone()) {
+                return Err(format!("「{}」重複了", label));
+            }
+            if kind == EditorKind::Categories {
+                if group.is_empty() {
+                    return Err(format!("「{}」需要填寫分組", label));
+                }
+                if group.chars().count() > MAX_GROUP_CHARS || group == "全部" {
+                    return Err(format!("「{}」的分組名稱無效（最多 {} 字，且不可為「全部」）", label, MAX_GROUP_CHARS));
+                }
+            }
+            rows.push(EditorRow { id: row.id.clone(), label, group });
+        }
+
+        match kind {
+            EditorKind::Categories => {
+                self.categories = rows
+                    .into_iter()
+                    .map(|r| Category { id: r.id, label: r.label, group: r.group })
+                    .collect();
+                if self.categories == default_categories() {
+                    LocalStorage::delete(STORAGE_CATEGORIES);
+                } else {
+                    let _ = LocalStorage::set(STORAGE_CATEGORIES, &self.categories);
+                }
+                if let Some(cat_id) = &self.selected_category {
+                    if !self.categories.iter().any(|c| &c.id == cat_id) {
+                        self.selected_category = None;
+                    }
+                }
+                if self.selected_group_tab != "全部"
+                    && !self.categories.iter().any(|c| c.group == self.selected_group_tab)
+                {
+                    self.selected_group_tab = "全部".to_string();
+                }
+            }
+            EditorKind::Items => {
+                self.items = rows
+                    .into_iter()
+                    .map(|r| Item { id: r.id, label: r.label })
+                    .collect();
+                if self.items == default_items() {
+                    LocalStorage::delete(STORAGE_ITEMS);
+                } else {
+                    let _ = LocalStorage::set(STORAGE_ITEMS, &self.items);
+                }
+                let items = &self.items;
+                self.selected_items.retain(|id| items.iter().any(|i| &i.id == id));
+            }
+        }
+
+        self.editor = None;
+        // A relabel changes the generated text even with the same selections.
+        self.schedule_auto_copy(ctx);
+        Ok(kind)
     }
 
     fn tutorial_next_index(&self, from: usize) -> Option<usize> {
@@ -1766,8 +2165,8 @@ impl App {
             }
             Some(TourTarget::Items) => {
                 let link2 = link.clone();
-                Timeout::new(500, move || link2.send_message(Msg::DemoToggleItem(gen, TOUR_DEMO_ITEMS[0]))).forget();
-                Timeout::new(1200, move || link.send_message(Msg::DemoToggleItem(gen, TOUR_DEMO_ITEMS[1]))).forget();
+                Timeout::new(500, move || link2.send_message(Msg::DemoToggleItem(gen, 0))).forget();
+                Timeout::new(1200, move || link.send_message(Msg::DemoToggleItem(gen, 1))).forget();
             }
             Some(TourTarget::Copy) => {
                 self.demo_copy_pulse = true;
@@ -1778,6 +2177,184 @@ impl App {
                 Timeout::new(500, move || link2.send_message(Msg::DemoCheckDoc(gen, 0))).forget();
                 Timeout::new(1200, move || link.send_message(Msg::DemoCheckDoc(gen, 1))).forget();
             }
+        }
+    }
+
+    /// The small pencil capsule in STEP 02/03's head that opens the editor.
+    /// Disabled while the tour runs (`Msg::OpenEditor` is inert then anyway).
+    fn view_edit_btn(&self, ctx: &Context<Self>, kind: EditorKind) -> Html {
+        let label = format!("編輯{}", kind.noun());
+        html! {
+            <button
+                type="button"
+                class="edit-btn"
+                title={label.clone()}
+                aria-label={label}
+                disabled={self.tutorial_step.is_some()}
+                onclick={ctx.link().callback(move |_| Msg::OpenEditor(kind))}
+            >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/>
+                </svg>
+                {"編輯"}
+            </button>
+        }
+    }
+
+    /// The add/edit/delete/reorder sheet for whichever list `self.editor`
+    /// holds a draft of. Rendered at the app-shell level (like the centered
+    /// tour panel) so its backdrop-filter has the page to sample.
+    fn view_editor(&self, ctx: &Context<Self>) -> Html {
+        let Some(editor) = self.editor.as_ref() else { return html! {} };
+        let kind = editor.kind;
+        let noun = kind.noun();
+        let is_categories = kind == EditorKind::Categories;
+        let last = editor.rows.len().saturating_sub(1);
+
+        let mut groups: Vec<&str> = Vec::new();
+        for row in &editor.rows {
+            let g = row.group.trim();
+            if !g.is_empty() && !groups.contains(&g) {
+                groups.push(g);
+            }
+        }
+
+        html! {
+            <>
+                <div class="editor-backdrop" onclick={ctx.link().callback(|_| Msg::CloseEditor)}></div>
+                <div class="editor-sheet" role="dialog" aria-modal="true" aria-label={format!("編輯{}", noun)}>
+                    <div class="editor-head">
+                        <div>
+                            <div class="card-kicker">{"自訂選項"}</div>
+                            <div class="card-title">{format!("編輯{}", noun)}</div>
+                        </div>
+                        <button
+                            type="button"
+                            class="tutorial-close"
+                            onclick={ctx.link().callback(|_| Msg::CloseEditor)}
+                            aria-label="關閉"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="editor-hint">
+                        {"按「儲存」後生效，只保存在這個瀏覽器。括號內的文字不會出現在產生結果，例如「護理師(護士)」會產生「護理師」。"}
+                        {if is_categories { "分組即上方的篩選頁籤。" } else { "自行新增的項目不會自動列出應備文件。" }}
+                    </p>
+                    <div class="editor-list">
+                        {for editor.rows.iter().enumerate().map(|(idx, row)| {
+                            html! {
+                                <div class="editor-row" key={row.id.clone()}>
+                                    <div class="editor-fields">
+                                        <input
+                                            type="text"
+                                            class="input editor-input"
+                                            placeholder={format!("{}名稱", noun)}
+                                            aria-label={format!("第 {} 列名稱", idx + 1)}
+                                            maxlength={MAX_LABEL_CHARS.to_string()}
+                                            value={row.label.clone()}
+                                            oninput={ctx.link().callback(move |e: InputEvent| {
+                                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                                Msg::EditorUpdateLabel(idx, input.value())
+                                            })}
+                                        />
+                                        {if is_categories {
+                                            html! {
+                                                <input
+                                                    type="text"
+                                                    class="input editor-input editor-group-input"
+                                                    list="editorGroupOptions"
+                                                    placeholder="分組"
+                                                    aria-label={format!("第 {} 列分組", idx + 1)}
+                                                    maxlength={MAX_GROUP_CHARS.to_string()}
+                                                    value={row.group.clone()}
+                                                    oninput={ctx.link().callback(move |e: InputEvent| {
+                                                        let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                                        Msg::EditorUpdateGroup(idx, input.value())
+                                                    })}
+                                                />
+                                            }
+                                        } else {
+                                            html! {}
+                                        }}
+                                    </div>
+                                    <div class="editor-row-actions">
+                                        <button
+                                            type="button"
+                                            class="editor-icon-btn"
+                                            aria-label="上移"
+                                            disabled={idx == 0}
+                                            onclick={ctx.link().callback(move |_| Msg::EditorMoveRow(idx, true))}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="editor-icon-btn"
+                                            aria-label="下移"
+                                            disabled={idx == last}
+                                            onclick={ctx.link().callback(move |_| Msg::EditorMoveRow(idx, false))}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="editor-icon-btn editor-icon-btn-danger"
+                                            aria-label="刪除"
+                                            onclick={ctx.link().callback(move |_| Msg::EditorDeleteRow(idx))}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                                                <path d="M10 11v6M14 11v6"/>
+                                                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        })}
+                        {if editor.rows.is_empty() {
+                            html! { <div class="docs-empty">{format!("目前沒有{}", noun)}</div> }
+                        } else {
+                            html! {}
+                        }}
+                    </div>
+                    {if is_categories {
+                        html! {
+                            <datalist id="editorGroupOptions">
+                                {for groups.iter().map(|g| html! { <option value={g.to_string()} /> })}
+                            </datalist>
+                        }
+                    } else {
+                        html! {}
+                    }}
+                    <button type="button" class="btn btn-secondary editor-add" onclick={ctx.link().callback(|_| Msg::EditorAddRow)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                        {format!("新增{}", noun)}
+                    </button>
+                    {if let Some(err) = &editor.error {
+                        html! { <p class="editor-error" role="alert">{err}</p> }
+                    } else {
+                        html! {}
+                    }}
+                    <div class="editor-foot">
+                        <button type="button" class="btn editor-reset" onclick={ctx.link().callback(|_| Msg::EditorResetDefaults)}>
+                            {"恢復預設"}
+                        </button>
+                        <div class="editor-foot-spacer"></div>
+                        <button type="button" class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::CloseEditor)}>
+                            {"取消"}
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick={ctx.link().callback(|_| Msg::EditorSave)}>
+                            {"儲存"}
+                        </button>
+                    </div>
+                </div>
+            </>
         }
     }
 
