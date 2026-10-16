@@ -79,6 +79,10 @@ struct Item {
 
 const STORAGE_CATEGORIES: &str = "medgen_categories";
 const STORAGE_ITEMS: &str = "medgen_items";
+/// 科別 (STEP 02's filter tabs) in tab order. Membership still comes from
+/// each category's `group`; this key only adds an order the category list
+/// alone can't express (see `normalize_groups`).
+const STORAGE_GROUPS: &str = "medgen_groups";
 /// Caps for both the editor and the load-time guard.
 const MAX_LIST_LEN: usize = 100;
 const MAX_LABEL_CHARS: usize = 30;
@@ -118,6 +122,38 @@ fn load_categories() -> Vec<Category> {
         .take(MAX_LIST_LEN)
         .collect();
     if list.is_empty() { default_categories() } else { list }
+}
+
+/// The 科別 in default tab order: first appearance in `DEFAULT_CATEGORIES`.
+fn default_groups() -> Vec<String> {
+    normalize_groups(Vec::new(), &default_categories())
+}
+
+/// Reconciles a 科別 order with the categories that actually use them: keeps
+/// the ordered names that are in use (deduped), then appends any group a
+/// category names that the order doesn't, in category order. The tab bar
+/// therefore never shows an empty tab nor misses one.
+fn normalize_groups(order: Vec<String>, categories: &[Category]) -> Vec<String> {
+    let mut groups: Vec<String> = Vec::new();
+    for g in order {
+        if !groups.contains(&g) && categories.iter().any(|c| c.group == g) {
+            groups.push(g);
+        }
+    }
+    for c in categories {
+        if !groups.contains(&c.group) {
+            groups.push(c.group.clone());
+        }
+    }
+    groups
+}
+
+/// Loads the 科別 order. An absent key means "default order", not "category
+/// order" — `save_editor` deletes the key when the order equals the default,
+/// which is only lossless if loading starts from that same default.
+fn load_groups(categories: &[Category]) -> Vec<String> {
+    let order = LocalStorage::get::<Vec<String>>(STORAGE_GROUPS).unwrap_or_else(|_| default_groups());
+    normalize_groups(order, categories)
 }
 
 fn load_items() -> Vec<Item> {
@@ -477,8 +513,12 @@ enum Msg {
     CloseEditor,
     EditorAddRow,
     EditorUpdateLabel(usize, String),
-    EditorUpdateGroup(usize, String),
+    EditorUpdateGroup(usize, u32),
     EditorMoveRow(usize, bool),
+    EditorAddGroup,
+    EditorRenameGroup(usize, String),
+    EditorMoveGroup(usize, bool),
+    EditorDeleteGroup(usize),
     EditorDeleteRow(usize),
     EditorResetDefaults,
     EditorSave,
@@ -500,12 +540,32 @@ impl EditorKind {
     }
 }
 
-/// One editable row. `group` is unused for items.
+/// One editable row. `group` is the `EditorGroup::key` of the row's 科別
+/// (0 = none); unused for items.
 #[derive(Clone, PartialEq)]
 struct EditorRow {
     id: String,
     label: String,
-    group: String,
+    group: u32,
+}
+
+/// One editable 科別 in the categories sheet. Rows point at it by `key`, not
+/// by name, so renaming a 科別 carries its categories along — and a half-typed
+/// name that briefly matches another 科別 can't merge the two.
+#[derive(Clone, PartialEq)]
+struct EditorGroup {
+    key: u32,
+    name: String,
+    // The live name this draft started from (None for one added this
+    // session), so a rename can keep STEP 02's selected tab on it.
+    original: Option<String>,
+}
+
+/// Which list `rendered` should focus the last input of.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EditorFocus {
+    Row,
+    Group,
 }
 
 /// Draft state of the open editor sheet. Edits stay here until 儲存, so
@@ -513,10 +573,42 @@ struct EditorRow {
 struct EditorState {
     kind: EditorKind,
     rows: Vec<EditorRow>,
+    // 科別 in tab order; empty for the items sheet.
+    groups: Vec<EditorGroup>,
     error: Option<String>,
     // Suffix for new rows' ids, so two rows added in the same millisecond
     // still get distinct ids.
     next_seq: u32,
+    next_group_key: u32,
+}
+
+impl EditorState {
+    /// Builds a categories draft, giving each 科別 a key and pointing rows at it.
+    fn for_categories(categories: &[Category], groups: &[String]) -> Self {
+        let groups: Vec<EditorGroup> = groups
+            .iter()
+            .enumerate()
+            .map(|(n, g)| EditorGroup { key: n as u32 + 1, name: g.clone(), original: Some(g.clone()) })
+            .collect();
+        let rows = categories
+            .iter()
+            .map(|c| EditorRow {
+                id: c.id.clone(),
+                label: c.label.clone(),
+                group: groups.iter().find(|g| g.name == c.group).map_or(0, |g| g.key),
+            })
+            .collect();
+        let next_group_key = groups.len() as u32 + 1;
+        EditorState { kind: EditorKind::Categories, rows, groups, error: None, next_seq: 0, next_group_key }
+    }
+
+    fn for_items(items: &[Item]) -> Self {
+        let rows = items
+            .iter()
+            .map(|i| EditorRow { id: i.id.clone(), label: i.label.clone(), group: 0 })
+            .collect();
+        EditorState { kind: EditorKind::Items, rows, groups: Vec::new(), error: None, next_seq: 0, next_group_key: 1 }
+    }
 }
 
 /// Snapshot of the three form fields (plus the incidental filter/checklist
@@ -538,10 +630,13 @@ struct FormSnapshot {
 struct App {
     // User-editable option lists (see `Category`/`Item`).
     categories: Vec<Category>,
+    // 科別 in tab order, always normalized against `categories`.
+    groups: Vec<String>,
     items: Vec<Item>,
     editor: Option<EditorState>,
-    // Set by EditorAddRow so `rendered` focuses (and scrolls to) the new row.
-    editor_focus_last: bool,
+    // Set by EditorAddRow/EditorAddGroup so `rendered` focuses (and scrolls
+    // to) the new row.
+    editor_focus_last: Option<EditorFocus>,
     applicant_name: String,
     selected_category: Option<String>,
     selected_items: Vec<String>,
@@ -679,11 +774,13 @@ impl Component for App {
             );
         }
 
+        let categories = load_categories();
         Self {
-            categories: load_categories(),
+            groups: load_groups(&categories),
+            categories,
             items: load_items(),
             editor: None,
-            editor_focus_last: false,
+            editor_focus_last: None,
             applicant_name: String::new(),
             selected_category: None,
             selected_items: Vec::new(),
@@ -1163,15 +1260,19 @@ impl Component for App {
                     return true;
                 }
                 // New categories land in the tab the user is looking at, or
-                // in the last row's group — the likeliest intent either way.
+                // in the last row's 科別 — the likeliest intent either way.
                 let group = if editor.kind == EditorKind::Categories {
-                    if tab != "全部" {
-                        tab
-                    } else {
-                        editor.rows.last().map(|r| r.group.clone()).unwrap_or_else(|| "醫政科".to_string())
-                    }
+                    editor
+                        .groups
+                        .iter()
+                        .find(|g| g.original.as_deref() == Some(tab.as_str()))
+                        .map(|g| g.key)
+                        .or_else(|| editor.rows.last().map(|r| r.group))
+                        .filter(|key| editor.groups.iter().any(|g| g.key == *key))
+                        .or_else(|| editor.groups.first().map(|g| g.key))
+                        .unwrap_or(0)
                 } else {
-                    String::new()
+                    0
                 };
                 editor.next_seq += 1;
                 editor.rows.push(EditorRow {
@@ -1180,7 +1281,53 @@ impl Component for App {
                     group,
                 });
                 editor.error = None;
-                self.editor_focus_last = true;
+                self.editor_focus_last = Some(EditorFocus::Row);
+                true
+            }
+            Msg::EditorAddGroup => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                if editor.groups.len() >= MAX_LIST_LEN {
+                    editor.error = Some(format!("最多只能有 {} 個科別", MAX_LIST_LEN));
+                    return true;
+                }
+                editor.groups.push(EditorGroup { key: editor.next_group_key, name: String::new(), original: None });
+                editor.next_group_key += 1;
+                editor.error = None;
+                self.editor_focus_last = Some(EditorFocus::Group);
+                true
+            }
+            Msg::EditorRenameGroup(idx, value) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                if let Some(group) = editor.groups.get_mut(idx) {
+                    group.name = value;
+                }
+                editor.error = None;
+                true
+            }
+            Msg::EditorMoveGroup(idx, up) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                let target = if up { idx.checked_sub(1) } else { Some(idx + 1) };
+                match target {
+                    Some(t) if t < editor.groups.len() && idx < editor.groups.len() => {
+                        editor.groups.swap(idx, t);
+                        true
+                    }
+                    _ => false,
+                }
+            }
+            Msg::EditorDeleteGroup(idx) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                let Some(group) = editor.groups.get(idx) else { return false };
+                // Deleting a 科別 never deletes or silently re-files its
+                // categories — the user moves or removes them first.
+                let used = editor.rows.iter().filter(|r| r.group == group.key).count();
+                if used > 0 {
+                    let name = if group.name.trim().is_empty() { "此科別" } else { group.name.trim() };
+                    editor.error = Some(format!("「{}」還有 {} 個申請類別，請先改到其他科別或刪除", name, used));
+                } else {
+                    editor.groups.remove(idx);
+                    editor.error = None;
+                }
                 true
             }
             Msg::EditorUpdateLabel(idx, value) => {
@@ -1219,18 +1366,20 @@ impl Component for App {
                 true
             }
             Msg::EditorResetDefaults => {
+                let live_groups = &self.groups;
                 let Some(editor) = self.editor.as_mut() else { return false };
-                editor.rows = match editor.kind {
-                    EditorKind::Categories => default_categories()
-                        .into_iter()
-                        .map(|c| EditorRow { id: c.id, label: c.label, group: c.group })
-                        .collect(),
-                    EditorKind::Items => default_items()
-                        .into_iter()
-                        .map(|i| EditorRow { id: i.id, label: i.label, group: String::new() })
-                        .collect(),
+                let mut fresh = match editor.kind {
+                    EditorKind::Categories => EditorState::for_categories(&default_categories(), &default_groups()),
+                    EditorKind::Items => EditorState::for_items(&default_items()),
                 };
-                editor.error = None;
+                // A default 科別 only "was" a live tab if the live list has it.
+                for g in &mut fresh.groups {
+                    if !live_groups.contains(&g.name) {
+                        g.original = None;
+                    }
+                }
+                fresh.next_seq = editor.next_seq;
+                *editor = fresh;
                 true
             }
             Msg::EditorSave => {
@@ -1254,10 +1403,14 @@ impl Component for App {
     }
 
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
-        if std::mem::take(&mut self.editor_focus_last) {
+        if let Some(focus) = self.editor_focus_last.take() {
+            let selector = match focus {
+                EditorFocus::Row => ".editor-rows .editor-row:last-child .editor-input",
+                EditorFocus::Group => ".editor-groups .editor-row:last-child .editor-input",
+            };
             if let Some(input) = web_sys::window()
                 .and_then(|w| w.document())
-                .and_then(|d| d.query_selector(".editor-row:last-child .editor-input").ok().flatten())
+                .and_then(|d| d.query_selector(selector).ok().flatten())
                 .and_then(|el| el.dyn_into::<web_sys::HtmlInputElement>().ok())
             {
                 // Focusing scrolls the overflowed list to the new row too.
@@ -1354,14 +1507,10 @@ impl Component for App {
             "待選擇".to_string()
         };
 
-        // Tab list is derived from the distinct `group` values in the live
-        // (user-editable) category list
+        // Tab list is the user-editable 科別 order (normalized against the
+        // categories, so every tab has at least one option).
         let mut group_tabs = vec!["全部"];
-        for cat in &self.categories {
-            if !group_tabs.contains(&cat.group.as_str()) {
-                group_tabs.push(cat.group.as_str());
-            }
-        }
+        group_tabs.extend(self.groups.iter().map(String::as_str));
 
         let filtered_categories: Vec<&Category> = self
             .categories
@@ -1984,19 +2133,10 @@ impl App {
 
     /// Opens the editor sheet with a draft copy of the chosen list.
     fn open_editor(&mut self, kind: EditorKind) {
-        let rows = match kind {
-            EditorKind::Categories => self
-                .categories
-                .iter()
-                .map(|c| EditorRow { id: c.id.clone(), label: c.label.clone(), group: c.group.clone() })
-                .collect(),
-            EditorKind::Items => self
-                .items
-                .iter()
-                .map(|i| EditorRow { id: i.id.clone(), label: i.label.clone(), group: String::new() })
-                .collect(),
-        };
-        self.editor = Some(EditorState { kind, rows, error: None, next_seq: 0 });
+        self.editor = Some(match kind {
+            EditorKind::Categories => EditorState::for_categories(&self.categories, &self.groups),
+            EditorKind::Items => EditorState::for_items(&self.items),
+        });
     }
 
     /// Validates the draft and, if it passes, makes it the live list:
@@ -2012,11 +2152,32 @@ impl App {
         if editor.rows.is_empty() {
             return Err(format!("至少需要保留一個{}", noun));
         }
+
+        // 科別 first: categories are checked against the resolved names.
+        let mut group_names: Vec<(u32, String)> = Vec::with_capacity(editor.groups.len());
+        if kind == EditorKind::Categories {
+            for (n, g) in editor.groups.iter().enumerate() {
+                let name = g.name.trim().to_string();
+                if name.is_empty() {
+                    return Err(format!("第 {} 個科別的名稱不可空白", n + 1));
+                }
+                if name.chars().count() > MAX_GROUP_CHARS || name == "全部" {
+                    return Err(format!("科別「{}」無效（最多 {} 字，且不可為「全部」）", name, MAX_GROUP_CHARS));
+                }
+                if group_names.iter().any(|(_, existing)| *existing == name) {
+                    return Err(format!("科別「{}」重複了", name));
+                }
+                if !editor.rows.iter().any(|r| r.group == g.key) {
+                    return Err(format!("科別「{}」沒有任何申請類別，請指派類別或刪除此科別", name));
+                }
+                group_names.push((g.key, name));
+            }
+        }
+
         let mut labels: HashSet<String> = HashSet::new();
-        let mut rows: Vec<EditorRow> = Vec::with_capacity(editor.rows.len());
+        let mut rows: Vec<(String, String, String)> = Vec::with_capacity(editor.rows.len());
         for (n, row) in editor.rows.iter().enumerate() {
             let label = row.label.trim().to_string();
-            let group = row.group.trim().to_string();
             if label.is_empty() {
                 return Err(format!("第 {} 列的名稱不可空白", n + 1));
             }
@@ -2029,43 +2190,56 @@ impl App {
             if !labels.insert(label.clone()) {
                 return Err(format!("「{}」重複了", label));
             }
-            if kind == EditorKind::Categories {
-                if group.is_empty() {
-                    return Err(format!("「{}」需要填寫分組", label));
+            let group = if kind == EditorKind::Categories {
+                match group_names.iter().find(|(key, _)| *key == row.group) {
+                    Some((_, name)) => name.clone(),
+                    None => return Err(format!("「{}」需要選擇科別", label)),
                 }
-                if group.chars().count() > MAX_GROUP_CHARS || group == "全部" {
-                    return Err(format!("「{}」的分組名稱無效（最多 {} 字，且不可為「全部」）", label, MAX_GROUP_CHARS));
-                }
-            }
-            rows.push(EditorRow { id: row.id.clone(), label, group });
+            } else {
+                String::new()
+            };
+            rows.push((row.id.clone(), label, group));
         }
 
         match kind {
             EditorKind::Categories => {
+                // Follow a renamed 科別 with the selected tab before the
+                // generic "tab no longer exists" fallback below.
+                if let Some(g) = editor
+                    .groups
+                    .iter()
+                    .find(|g| g.original.as_deref() == Some(self.selected_group_tab.as_str()))
+                {
+                    self.selected_group_tab = g.name.trim().to_string();
+                }
                 self.categories = rows
                     .into_iter()
-                    .map(|r| Category { id: r.id, label: r.label, group: r.group })
+                    .map(|(id, label, group)| Category { id, label, group })
                     .collect();
+                self.groups = group_names.into_iter().map(|(_, name)| name).collect();
                 if self.categories == default_categories() {
                     LocalStorage::delete(STORAGE_CATEGORIES);
                 } else {
                     let _ = LocalStorage::set(STORAGE_CATEGORIES, &self.categories);
+                }
+                if self.groups == default_groups() {
+                    LocalStorage::delete(STORAGE_GROUPS);
+                } else {
+                    let _ = LocalStorage::set(STORAGE_GROUPS, &self.groups);
                 }
                 if let Some(cat_id) = &self.selected_category {
                     if !self.categories.iter().any(|c| &c.id == cat_id) {
                         self.selected_category = None;
                     }
                 }
-                if self.selected_group_tab != "全部"
-                    && !self.categories.iter().any(|c| c.group == self.selected_group_tab)
-                {
+                if self.selected_group_tab != "全部" && !self.groups.contains(&self.selected_group_tab) {
                     self.selected_group_tab = "全部".to_string();
                 }
             }
             EditorKind::Items => {
                 self.items = rows
                     .into_iter()
-                    .map(|r| Item { id: r.id, label: r.label })
+                    .map(|(id, label, _)| Item { id, label })
                     .collect();
                 if self.items == default_items() {
                     LocalStorage::delete(STORAGE_ITEMS);
@@ -2211,14 +2385,11 @@ impl App {
         let noun = kind.noun();
         let is_categories = kind == EditorKind::Categories;
         let last = editor.rows.len().saturating_sub(1);
-
-        let mut groups: Vec<&str> = Vec::new();
-        for row in &editor.rows {
-            let g = row.group.trim();
-            if !g.is_empty() && !groups.contains(&g) {
-                groups.push(g);
-            }
-        }
+        let last_group = editor.groups.len().saturating_sub(1);
+        let group_display = |g: &EditorGroup| -> String {
+            let name = g.name.trim();
+            if name.is_empty() { "（未命名科別）".to_string() } else { name.to_string() }
+        };
 
         html! {
             <>
@@ -2242,9 +2413,87 @@ impl App {
                     </div>
                     <p class="editor-hint">
                         {"按「儲存」後生效，只保存在這個瀏覽器。括號內的文字不會出現在產生結果，例如「護理師(護士)」會產生「護理師」。"}
-                        {if is_categories { "分組即上方的篩選頁籤。" } else { "自行新增的項目不會自動列出應備文件。" }}
+                        {if is_categories { "科別即上方的篩選頁籤，改名時其下的類別會一併跟著。" } else { "自行新增的項目不會自動列出應備文件。" }}
                     </p>
-                    <div class="editor-list">
+                    <div class="editor-body">
+                    {if is_categories {
+                        html! {
+                            <section class="editor-section">
+                                <div class="editor-section-title">{"科別"}</div>
+                                <div class="editor-list editor-groups">
+                                    {for editor.groups.iter().enumerate().map(|(idx, group)| {
+                                        let used = editor.rows.iter().filter(|r| r.group == group.key).count();
+                                        html! {
+                                            <div class="editor-row" key={format!("g{}", group.key)}>
+                                                <div class="editor-fields">
+                                                    <input
+                                                        type="text"
+                                                        class="input editor-input"
+                                                        placeholder="科別名稱"
+                                                        aria-label={format!("第 {} 個科別名稱", idx + 1)}
+                                                        maxlength={MAX_GROUP_CHARS.to_string()}
+                                                        value={group.name.clone()}
+                                                        oninput={ctx.link().callback(move |e: InputEvent| {
+                                                            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                                            Msg::EditorRenameGroup(idx, input.value())
+                                                        })}
+                                                    />
+                                                </div>
+                                                <span class="editor-count">{format!("{} 類", used)}</span>
+                                                <div class="editor-row-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="editor-icon-btn"
+                                                        aria-label="科別上移"
+                                                        disabled={idx == 0}
+                                                        onclick={ctx.link().callback(move |_| Msg::EditorMoveGroup(idx, true))}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="editor-icon-btn"
+                                                        aria-label="科別下移"
+                                                        disabled={idx == last_group}
+                                                        onclick={ctx.link().callback(move |_| Msg::EditorMoveGroup(idx, false))}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="editor-icon-btn editor-icon-btn-danger"
+                                                        aria-label="刪除科別"
+                                                        title={if used > 0 { "請先把此科別的類別改到其他科別或刪除" } else { "刪除科別" }}
+                                                        onclick={ctx.link().callback(move |_| Msg::EditorDeleteGroup(idx))}
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <polyline points="3 6 5 6 21 6"/>
+                                                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                                                            <path d="M10 11v6M14 11v6"/>
+                                                            <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    })}
+                                </div>
+                                <button type="button" class="btn btn-secondary editor-add" onclick={ctx.link().callback(|_| Msg::EditorAddGroup)}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                    {"新增科別"}
+                                </button>
+                            </section>
+                        }
+                    } else {
+                        html! {}
+                    }}
+                    <section class="editor-section">
+                    {if is_categories {
+                        html! { <div class="editor-section-title">{noun}</div> }
+                    } else {
+                        html! {}
+                    }}
+                    <div class="editor-list editor-rows">
                         {for editor.rows.iter().enumerate().map(|(idx, row)| {
                             html! {
                                 <div class="editor-row" key={row.id.clone()}>
@@ -2262,20 +2511,27 @@ impl App {
                                             })}
                                         />
                                         {if is_categories {
+                                            let current = row.group;
                                             html! {
-                                                <input
-                                                    type="text"
+                                                <select
                                                     class="input editor-input editor-group-input"
-                                                    list="editorGroupOptions"
-                                                    placeholder="分組"
-                                                    aria-label={format!("第 {} 列分組", idx + 1)}
-                                                    maxlength={MAX_GROUP_CHARS.to_string()}
-                                                    value={row.group.clone()}
-                                                    oninput={ctx.link().callback(move |e: InputEvent| {
-                                                        let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                        Msg::EditorUpdateGroup(idx, input.value())
+                                                    aria-label={format!("第 {} 列科別", idx + 1)}
+                                                    onchange={ctx.link().callback(move |e: Event| {
+                                                        let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
+                                                        Msg::EditorUpdateGroup(idx, select.value().parse().unwrap_or(0))
                                                     })}
-                                                />
+                                                >
+                                                    {if editor.groups.iter().all(|g| g.key != current) {
+                                                        html! { <option value="0" selected=true disabled=true>{"選擇科別"}</option> }
+                                                    } else {
+                                                        html! {}
+                                                    }}
+                                                    {for editor.groups.iter().map(|g| html! {
+                                                        <option value={g.key.to_string()} selected={g.key == current}>
+                                                            {group_display(g)}
+                                                        </option>
+                                                    })}
+                                                </select>
                                             }
                                         } else {
                                             html! {}
@@ -2323,19 +2579,12 @@ impl App {
                             html! {}
                         }}
                     </div>
-                    {if is_categories {
-                        html! {
-                            <datalist id="editorGroupOptions">
-                                {for groups.iter().map(|g| html! { <option value={g.to_string()} /> })}
-                            </datalist>
-                        }
-                    } else {
-                        html! {}
-                    }}
                     <button type="button" class="btn btn-secondary editor-add" onclick={ctx.link().callback(|_| Msg::EditorAddRow)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
                         {format!("新增{}", noun)}
                     </button>
+                    </section>
+                    </div>
                     {if let Some(err) = &editor.error {
                         html! { <p class="editor-error" role="alert">{err}</p> }
                     } else {

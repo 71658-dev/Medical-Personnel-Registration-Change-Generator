@@ -1224,15 +1224,53 @@ img { display: block; max-width: 100%; }
     line-height: 18px;
     color: var(--color-text-secondary);
 }
-.editor-list {
+/* One scroller for both sections (科別 + 申請類別), so the sheet's head,
+   error line and foot stay put however long the lists get. */
+.editor-body {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-4);
     min-height: 0;
     overflow-y: auto;
     /* room for the inputs' focus ring inside the scroller */
     padding: 2px;
     margin: -2px;
+}
+.editor-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.editor-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+.editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.editor-count {
+    flex-shrink: 0;
+    min-width: 3em;
+    text-align: right;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+select.editor-input {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 28px;
+    cursor: pointer;
+}
+/* :hover listed too — .input:hover's `background` shorthand would drop the chevron. */
+select.editor-input,
+select.editor-input:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
 }
 .editor-row {
     display: flex;
@@ -1290,7 +1328,7 @@ img { display: block; max-width: 100%; }
 .editor-foot .btn-secondary { min-height: 42px; padding: 0 var(--space-4); }
 
 @media (max-width: 519px) {
-    /* Stack 名稱 over 分組 so the name keeps a usable width on a phone. */
+    /* Stack 名稱 over 科別 so the name keeps a usable width on a phone. */
     .editor-fields { flex-direction: column; }
     .editor-group-input { flex: none; width: 100%; }
     .editor-sheet { padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); }
