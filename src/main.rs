@@ -13,48 +13,51 @@ struct CategoryDef {
     id: &'static str,
     label: &'static str,
     group: &'static str,
+    // 子分類 inside the 科別 — STEP 02's sub-headings (empty = none).
+    sub: &'static str,
 }
 
 const DEFAULT_CATEGORIES: &[CategoryDef] = &[
-    CategoryDef { id: "physician", label: "醫師", group: "醫政科" },
-    CategoryDef { id: "tcm_physician", label: "中醫師", group: "醫政科" },
-    CategoryDef { id: "dentist", label: "牙醫師", group: "醫政科" },
-    CategoryDef { id: "nurse", label: "護理師(護士)", group: "醫政科" },
-    CategoryDef { id: "midwife", label: "助產師(士)", group: "醫政科" },
-    CategoryDef { id: "pharmacist", label: "藥師", group: "食藥科" },
-    CategoryDef { id: "assistant_pharmacist", label: "藥劑生", group: "食藥科" },
-    CategoryDef { id: "medical_technologist", label: "醫事檢驗師(生)", group: "醫政科" },
-    CategoryDef { id: "medical_radiation", label: "醫事放射師(士)", group: "醫政科" },
-    CategoryDef { id: "dental_technologist", label: "牙體技術師(生)", group: "醫政科" },
-    CategoryDef { id: "optometrist", label: "驗光師(生)", group: "醫政科" },
-    CategoryDef { id: "physical_therapist", label: "物理治療師(生)", group: "醫政科" },
-    CategoryDef { id: "occupational_therapist", label: "職能治療師(生)", group: "醫政科" },
-    CategoryDef { id: "speech_therapist", label: "語言治療師", group: "醫政科" },
-    CategoryDef { id: "audiologist", label: "聽力師", group: "醫政科" },
-    CategoryDef { id: "respiratory_therapist", label: "呼吸治療師", group: "醫政科" },
-    CategoryDef { id: "clinical_psychologist", label: "臨床心理師", group: "心健科" },
-    CategoryDef { id: "counseling_psychologist", label: "諮商心理師", group: "心健科" },
-    CategoryDef { id: "nutritionist", label: "營養師", group: "食藥科" },
+    CategoryDef { id: "physician", label: "醫師", group: "醫政科", sub: "醫師類" },
+    CategoryDef { id: "tcm_physician", label: "中醫師", group: "醫政科", sub: "醫師類" },
+    CategoryDef { id: "dentist", label: "牙醫師", group: "醫政科", sub: "醫師類" },
+    CategoryDef { id: "nurse", label: "護理師(護士)", group: "醫政科", sub: "護理助產" },
+    CategoryDef { id: "midwife", label: "助產師(士)", group: "醫政科", sub: "護理助產" },
+    CategoryDef { id: "pharmacist", label: "藥師", group: "食藥科", sub: "藥事" },
+    CategoryDef { id: "assistant_pharmacist", label: "藥劑生", group: "食藥科", sub: "藥事" },
+    CategoryDef { id: "medical_technologist", label: "醫事檢驗師(生)", group: "醫政科", sub: "醫事技術" },
+    CategoryDef { id: "medical_radiation", label: "醫事放射師(士)", group: "醫政科", sub: "醫事技術" },
+    CategoryDef { id: "dental_technologist", label: "牙體技術師(生)", group: "醫政科", sub: "醫事技術" },
+    CategoryDef { id: "optometrist", label: "驗光師(生)", group: "醫政科", sub: "醫事技術" },
+    CategoryDef { id: "physical_therapist", label: "物理治療師(生)", group: "醫政科", sub: "治療類" },
+    CategoryDef { id: "occupational_therapist", label: "職能治療師(生)", group: "醫政科", sub: "治療類" },
+    CategoryDef { id: "speech_therapist", label: "語言治療師", group: "醫政科", sub: "治療類" },
+    CategoryDef { id: "audiologist", label: "聽力師", group: "醫政科", sub: "治療類" },
+    CategoryDef { id: "respiratory_therapist", label: "呼吸治療師", group: "醫政科", sub: "治療類" },
+    CategoryDef { id: "clinical_psychologist", label: "臨床心理師", group: "心健科", sub: "心理師" },
+    CategoryDef { id: "counseling_psychologist", label: "諮商心理師", group: "心健科", sub: "心理師" },
+    CategoryDef { id: "nutritionist", label: "營養師", group: "食藥科", sub: "營養" },
 ];
 
 struct ItemDef {
     id: &'static str,
     label: &'static str,
+    group: &'static str,
 }
 
 const DEFAULT_ITEMS: &[ItemDef] = &[
-    ItemDef { id: "register", label: "執業(現歇業)登記" },
-    ItemDef { id: "suspend", label: "停業登記" },
-    ItemDef { id: "resume", label: "復業(現停業)登記" },
-    ItemDef { id: "cessation", label: "歇業(離職)登記" },
-    ItemDef { id: "dept_change", label: "(科別)變更" },
-    ItemDef { id: "name_change", label: "(姓名)變更" },
-    ItemDef { id: "inst_change", label: "機構變更" },
-    ItemDef { id: "cat_change", label: "類別變更" },
-    ItemDef { id: "lost_reissue", label: "遺失補發" },
-    ItemDef { id: "damage_reissue", label: "損壞補發" },
-    ItemDef { id: "renew", label: "到期換發" },
-    ItemDef { id: "seniority_cert", label: "年資證明" },
+    ItemDef { id: "register", label: "執業(現歇業)登記", group: "執業登記" },
+    ItemDef { id: "suspend", label: "停業登記", group: "執業登記" },
+    ItemDef { id: "resume", label: "復業(現停業)登記", group: "執業登記" },
+    ItemDef { id: "cessation", label: "歇業(離職)登記", group: "執業登記" },
+    ItemDef { id: "dept_change", label: "(科別)變更", group: "變更登記" },
+    ItemDef { id: "name_change", label: "(姓名)變更", group: "變更登記" },
+    ItemDef { id: "inst_change", label: "機構變更", group: "變更登記" },
+    ItemDef { id: "cat_change", label: "類別變更", group: "變更登記" },
+    ItemDef { id: "lost_reissue", label: "遺失補發", group: "執照補換發" },
+    ItemDef { id: "damage_reissue", label: "損壞補發", group: "執照補換發" },
+    ItemDef { id: "renew", label: "到期換發", group: "執照補換發" },
+    ItemDef { id: "seniority_cert", label: "年資證明", group: "證明文件" },
 ];
 
 /// Runtime 申請類別 — the user can add/edit/delete these (see the editor
@@ -67,14 +70,29 @@ struct Category {
     id: String,
     label: String,
     group: String,
+    /// 子分類 — STEP 02's sub-heading within the 科別. `None` only for lists
+    /// saved before 子分類 existed, which `load_categories` back-fills from
+    /// the defaults; `Some("")` is a deliberate "no 子分類".
+    #[serde(default)]
+    subgroup: Option<String>,
+}
+
+impl Category {
+    fn sub(&self) -> &str {
+        self.subgroup.as_deref().unwrap_or("")
+    }
 }
 
 /// Runtime 申請項目 — same arrangement as `Category`; `ITEM_DOC_CODES` keys on
-/// `id`, so a user-added item simply has no item-specific 應備文件.
+/// `id`, so a user-added item simply has no item-specific 應備文件. `group`
+/// is the 分類 STEP 03 lists it under; lists saved before 分類 existed have
+/// none, which `load_items` back-fills (`#[serde(default)]` lets them parse).
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
 struct Item {
     id: String,
     label: String,
+    #[serde(default)]
+    group: String,
 }
 
 const STORAGE_CATEGORIES: &str = "medgen_categories";
@@ -83,6 +101,11 @@ const STORAGE_ITEMS: &str = "medgen_items";
 /// each category's `group`; this key only adds an order the category list
 /// alone can't express (see `normalize_groups`).
 const STORAGE_GROUPS: &str = "medgen_groups";
+/// 分類 (STEP 03's section headings) in display order — the items-side twin
+/// of `STORAGE_GROUPS`, with the same absent-key-means-default contract.
+const STORAGE_ITEM_GROUPS: &str = "medgen_item_groups";
+/// Where an item lands when its saved 分類 is missing and it isn't a default.
+const FALLBACK_ITEM_GROUP: &str = "其他";
 /// Caps for both the editor and the load-time guard.
 const MAX_LIST_LEN: usize = 100;
 const MAX_LABEL_CHARS: usize = 30;
@@ -91,14 +114,19 @@ const MAX_GROUP_CHARS: usize = 10;
 fn default_categories() -> Vec<Category> {
     DEFAULT_CATEGORIES
         .iter()
-        .map(|c| Category { id: c.id.to_string(), label: c.label.to_string(), group: c.group.to_string() })
+        .map(|c| Category {
+            id: c.id.to_string(),
+            label: c.label.to_string(),
+            group: c.group.to_string(),
+            subgroup: Some(c.sub.to_string()),
+        })
         .collect()
 }
 
 fn default_items() -> Vec<Item> {
     DEFAULT_ITEMS
         .iter()
-        .map(|i| Item { id: i.id.to_string(), label: i.label.to_string() })
+        .map(|i| Item { id: i.id.to_string(), label: i.label.to_string(), group: i.group.to_string() })
         .collect()
 }
 
@@ -120,29 +148,54 @@ fn load_categories() -> Vec<Category> {
                 && seen.insert(c.id.clone())
         })
         .take(MAX_LIST_LEN)
+        .map(|mut c| {
+            // Saved before 子分類 existed (or a hand-edited bad value): take
+            // the default's 子分類 by id, else none.
+            let valid = c.subgroup.as_ref().is_some_and(|s| s.chars().count() <= MAX_GROUP_CHARS);
+            if !valid {
+                c.subgroup = Some(
+                    DEFAULT_CATEGORIES.iter().find(|d| d.id == c.id).map_or("", |d| d.sub).to_string(),
+                );
+            }
+            c
+        })
         .collect();
     if list.is_empty() { default_categories() } else { list }
 }
 
 /// The 科別 in default tab order: first appearance in `DEFAULT_CATEGORIES`.
 fn default_groups() -> Vec<String> {
-    normalize_groups(Vec::new(), &default_categories())
+    normalize_groups(Vec::new(), &category_group_names(&default_categories()))
 }
 
-/// Reconciles a 科別 order with the categories that actually use them: keeps
-/// the ordered names that are in use (deduped), then appends any group a
-/// category names that the order doesn't, in category order. The tab bar
-/// therefore never shows an empty tab nor misses one.
-fn normalize_groups(order: Vec<String>, categories: &[Category]) -> Vec<String> {
+/// The 分類 in default order: first appearance in `DEFAULT_ITEMS`.
+fn default_item_groups() -> Vec<String> {
+    normalize_groups(Vec::new(), &item_group_names(&default_items()))
+}
+
+fn category_group_names(categories: &[Category]) -> Vec<&str> {
+    categories.iter().map(|c| c.group.as_str()).collect()
+}
+
+fn item_group_names(items: &[Item]) -> Vec<&str> {
+    items.iter().map(|i| i.group.as_str()).collect()
+}
+
+/// Reconciles a group order (科別 or 分類) with the group names its rows
+/// actually use (`used`, in row order): keeps the ordered names that are in
+/// use (deduped), then appends any name a row uses that the order doesn't.
+/// The tab bar / section list therefore never shows an empty group nor
+/// misses one.
+fn normalize_groups(order: Vec<String>, used: &[&str]) -> Vec<String> {
     let mut groups: Vec<String> = Vec::new();
     for g in order {
-        if !groups.contains(&g) && categories.iter().any(|c| c.group == g) {
+        if !groups.contains(&g) && used.contains(&g.as_str()) {
             groups.push(g);
         }
     }
-    for c in categories {
-        if !groups.contains(&c.group) {
-            groups.push(c.group.clone());
+    for g in used {
+        if !groups.iter().any(|existing| existing == g) {
+            groups.push(g.to_string());
         }
     }
     groups
@@ -153,7 +206,13 @@ fn normalize_groups(order: Vec<String>, categories: &[Category]) -> Vec<String> 
 /// which is only lossless if loading starts from that same default.
 fn load_groups(categories: &[Category]) -> Vec<String> {
     let order = LocalStorage::get::<Vec<String>>(STORAGE_GROUPS).unwrap_or_else(|_| default_groups());
-    normalize_groups(order, categories)
+    normalize_groups(order, &category_group_names(categories))
+}
+
+/// Loads the 分類 order, on the same terms as `load_groups`.
+fn load_item_groups(items: &[Item]) -> Vec<String> {
+    let order = LocalStorage::get::<Vec<String>>(STORAGE_ITEM_GROUPS).unwrap_or_else(|_| default_item_groups());
+    normalize_groups(order, &item_group_names(items))
 }
 
 fn load_items() -> Vec<Item> {
@@ -169,6 +228,19 @@ fn load_items() -> Vec<Item> {
                 && seen.insert(i.id.clone())
         })
         .take(MAX_LIST_LEN)
+        .map(|mut i| {
+            // A list saved before 分類 existed (or a hand-edited bad value):
+            // re-file a default item under its default 分類, anything else
+            // under 其他, rather than dropping a customised list.
+            if i.group.trim().is_empty() || i.group.chars().count() > MAX_GROUP_CHARS {
+                i.group = DEFAULT_ITEMS
+                    .iter()
+                    .find(|d| d.id == i.id)
+                    .map_or(FALLBACK_ITEM_GROUP, |d| d.group)
+                    .to_string();
+            }
+            i
+        })
         .collect();
     if list.is_empty() { default_items() } else { list }
 }
@@ -514,6 +586,7 @@ enum Msg {
     EditorAddRow,
     EditorUpdateLabel(usize, String),
     EditorUpdateGroup(usize, u32),
+    EditorUpdateSubgroup(usize, String),
     EditorMoveRow(usize, bool),
     EditorAddGroup,
     EditorRenameGroup(usize, String),
@@ -538,19 +611,38 @@ impl EditorKind {
             EditorKind::Items => "申請項目",
         }
     }
+
+    /// What this list's groups are called: 科別 (STEP 02's filter tabs) or
+    /// 分類 (STEP 03's section headings).
+    fn group_noun(self) -> &'static str {
+        match self {
+            EditorKind::Categories => "科別",
+            EditorKind::Items => "分類",
+        }
+    }
+
+    /// Counter unit for the group rows' "N 類 / N 項".
+    fn row_unit(self) -> &'static str {
+        match self {
+            EditorKind::Categories => "類",
+            EditorKind::Items => "項",
+        }
+    }
 }
 
-/// One editable row. `group` is the `EditorGroup::key` of the row's 科別
-/// (0 = none); unused for items.
+/// One editable row. `group` is the `EditorGroup::key` of the row's 科別 /
+/// 分類 (0 = none).
 #[derive(Clone, PartialEq)]
 struct EditorRow {
     id: String,
     label: String,
     group: u32,
+    // 子分類 (categories sheet only; always empty for items).
+    subgroup: String,
 }
 
-/// One editable 科別 in the categories sheet. Rows point at it by `key`, not
-/// by name, so renaming a 科別 carries its categories along — and a half-typed
+/// One editable 科別 (categories sheet) or 分類 (items sheet). Rows point at
+/// it by `key`, not by name, so renaming a group carries its rows along — and a half-typed
 /// name that briefly matches another 科別 can't merge the two.
 #[derive(Clone, PartialEq)]
 struct EditorGroup {
@@ -573,7 +665,7 @@ enum EditorFocus {
 struct EditorState {
     kind: EditorKind,
     rows: Vec<EditorRow>,
-    // 科別 in tab order; empty for the items sheet.
+    // 科別 / 分類 in display order.
     groups: Vec<EditorGroup>,
     error: Option<String>,
     // Suffix for new rows' ids, so two rows added in the same millisecond
@@ -583,31 +675,34 @@ struct EditorState {
 }
 
 impl EditorState {
-    /// Builds a categories draft, giving each 科別 a key and pointing rows at it.
-    fn for_categories(categories: &[Category], groups: &[String]) -> Self {
+    /// Builds a draft, giving each group a key and pointing rows at it.
+    /// `rows` is `(id, label, group name, 子分類)`.
+    fn build<'a>(kind: EditorKind, rows: impl Iterator<Item = (&'a str, &'a str, &'a str, &'a str)>, groups: &[String]) -> Self {
         let groups: Vec<EditorGroup> = groups
             .iter()
             .enumerate()
             .map(|(n, g)| EditorGroup { key: n as u32 + 1, name: g.clone(), original: Some(g.clone()) })
             .collect();
-        let rows = categories
-            .iter()
-            .map(|c| EditorRow {
-                id: c.id.clone(),
-                label: c.label.clone(),
-                group: groups.iter().find(|g| g.name == c.group).map_or(0, |g| g.key),
+        let rows = rows
+            .map(|(id, label, group, sub)| EditorRow {
+                id: id.to_string(),
+                label: label.to_string(),
+                group: groups.iter().find(|g| g.name == group).map_or(0, |g| g.key),
+                subgroup: sub.to_string(),
             })
             .collect();
         let next_group_key = groups.len() as u32 + 1;
-        EditorState { kind: EditorKind::Categories, rows, groups, error: None, next_seq: 0, next_group_key }
+        EditorState { kind, rows, groups, error: None, next_seq: 0, next_group_key }
     }
 
-    fn for_items(items: &[Item]) -> Self {
-        let rows = items
-            .iter()
-            .map(|i| EditorRow { id: i.id.clone(), label: i.label.clone(), group: 0 })
-            .collect();
-        EditorState { kind: EditorKind::Items, rows, groups: Vec::new(), error: None, next_seq: 0, next_group_key: 1 }
+    fn for_categories(categories: &[Category], groups: &[String]) -> Self {
+        let rows = categories.iter().map(|c| (c.id.as_str(), c.label.as_str(), c.group.as_str(), c.sub()));
+        Self::build(EditorKind::Categories, rows, groups)
+    }
+
+    fn for_items(items: &[Item], groups: &[String]) -> Self {
+        let rows = items.iter().map(|i| (i.id.as_str(), i.label.as_str(), i.group.as_str(), ""));
+        Self::build(EditorKind::Items, rows, groups)
     }
 }
 
@@ -633,6 +728,8 @@ struct App {
     // 科別 in tab order, always normalized against `categories`.
     groups: Vec<String>,
     items: Vec<Item>,
+    // 分類 in STEP 03 section order, always normalized against `items`.
+    item_groups: Vec<String>,
     editor: Option<EditorState>,
     // Set by EditorAddRow/EditorAddGroup so `rendered` focuses (and scrolls
     // to) the new row.
@@ -775,10 +872,12 @@ impl Component for App {
         }
 
         let categories = load_categories();
+        let items = load_items();
         Self {
             groups: load_groups(&categories),
             categories,
-            items: load_items(),
+            item_groups: load_item_groups(&items),
+            items,
             editor: None,
             editor_focus_last: None,
             applicant_name: String::new(),
@@ -1259,26 +1358,25 @@ impl Component for App {
                     editor.error = Some(format!("最多只能有 {} 個{}", MAX_LIST_LEN, editor.kind.noun()));
                     return true;
                 }
-                // New categories land in the tab the user is looking at, or
-                // in the last row's 科別 — the likeliest intent either way.
-                let group = if editor.kind == EditorKind::Categories {
-                    editor
-                        .groups
-                        .iter()
-                        .find(|g| g.original.as_deref() == Some(tab.as_str()))
-                        .map(|g| g.key)
-                        .or_else(|| editor.rows.last().map(|r| r.group))
-                        .filter(|key| editor.groups.iter().any(|g| g.key == *key))
-                        .or_else(|| editor.groups.first().map(|g| g.key))
-                        .unwrap_or(0)
+                // New categories land in the tab the user is looking at;
+                // otherwise (and for items) in the last row's group — the
+                // likeliest intent either way.
+                let tab_group = if editor.kind == EditorKind::Categories {
+                    editor.groups.iter().find(|g| g.original.as_deref() == Some(tab.as_str())).map(|g| g.key)
                 } else {
-                    0
+                    None
                 };
+                let group = tab_group
+                    .or_else(|| editor.rows.last().map(|r| r.group))
+                    .filter(|key| editor.groups.iter().any(|g| g.key == *key))
+                    .or_else(|| editor.groups.first().map(|g| g.key))
+                    .unwrap_or(0);
                 editor.next_seq += 1;
                 editor.rows.push(EditorRow {
                     id: format!("custom_{}_{}", js_sys::Date::now() as u64, editor.next_seq),
                     label: String::new(),
                     group,
+                    subgroup: String::new(),
                 });
                 editor.error = None;
                 self.editor_focus_last = Some(EditorFocus::Row);
@@ -1287,7 +1385,7 @@ impl Component for App {
             Msg::EditorAddGroup => {
                 let Some(editor) = self.editor.as_mut() else { return false };
                 if editor.groups.len() >= MAX_LIST_LEN {
-                    editor.error = Some(format!("最多只能有 {} 個科別", MAX_LIST_LEN));
+                    editor.error = Some(format!("最多只能有 {} 個{}", MAX_LIST_LEN, editor.kind.group_noun()));
                     return true;
                 }
                 editor.groups.push(EditorGroup { key: editor.next_group_key, name: String::new(), original: None });
@@ -1318,12 +1416,19 @@ impl Component for App {
             Msg::EditorDeleteGroup(idx) => {
                 let Some(editor) = self.editor.as_mut() else { return false };
                 let Some(group) = editor.groups.get(idx) else { return false };
-                // Deleting a 科別 never deletes or silently re-files its
-                // categories — the user moves or removes them first.
+                // Deleting a group never deletes or silently re-files its
+                // rows — the user moves or removes them first.
                 let used = editor.rows.iter().filter(|r| r.group == group.key).count();
                 if used > 0 {
-                    let name = if group.name.trim().is_empty() { "此科別" } else { group.name.trim() };
-                    editor.error = Some(format!("「{}」還有 {} 個申請類別，請先改到其他科別或刪除", name, used));
+                    let gn = editor.kind.group_noun();
+                    let name = if group.name.trim().is_empty() { format!("此{}", gn) } else { group.name.trim().to_string() };
+                    editor.error = Some(format!(
+                        "「{}」還有 {} 個{}，請先改到其他{}或刪除",
+                        name,
+                        used,
+                        editor.kind.noun(),
+                        gn
+                    ));
                 } else {
                     editor.groups.remove(idx);
                     editor.error = None;
@@ -1334,6 +1439,14 @@ impl Component for App {
                 let Some(editor) = self.editor.as_mut() else { return false };
                 if let Some(row) = editor.rows.get_mut(idx) {
                     row.label = value;
+                }
+                editor.error = None;
+                true
+            }
+            Msg::EditorUpdateSubgroup(idx, value) => {
+                let Some(editor) = self.editor.as_mut() else { return false };
+                if let Some(row) = editor.rows.get_mut(idx) {
+                    row.subgroup = value;
                 }
                 editor.error = None;
                 true
@@ -1366,13 +1479,16 @@ impl Component for App {
                 true
             }
             Msg::EditorResetDefaults => {
-                let live_groups = &self.groups;
                 let Some(editor) = self.editor.as_mut() else { return false };
-                let mut fresh = match editor.kind {
-                    EditorKind::Categories => EditorState::for_categories(&default_categories(), &default_groups()),
-                    EditorKind::Items => EditorState::for_items(&default_items()),
+                let (mut fresh, live_groups) = match editor.kind {
+                    EditorKind::Categories => {
+                        (EditorState::for_categories(&default_categories(), &default_groups()), &self.groups)
+                    }
+                    EditorKind::Items => {
+                        (EditorState::for_items(&default_items(), &default_item_groups()), &self.item_groups)
+                    }
                 };
-                // A default 科別 only "was" a live tab if the live list has it.
+                // A default group only "was" a live one if the live list has it.
                 for g in &mut fresh.groups {
                     if !live_groups.contains(&g.name) {
                         g.original = None;
@@ -1753,22 +1869,33 @@ impl Component for App {
                                     }
                                 })}
                             </div>
-                            <div class="cat-grid">
-                                {for filtered_categories.into_iter().map(|cat| {
-                                    let cat_id = cat.id.clone();
-                                    let selected = self.selected_category.as_ref() == Some(&cat_id);
-                                    html! {
-                                        <button
-                                            type="button"
-                                            class={if selected { "btn opt-btn selected" } else { "btn opt-btn" }}
-                                            aria-pressed={if selected { "true" } else { "false" }}
-                                            onclick={ctx.link().callback(move |_| Msg::SelectCategory(cat_id.clone()))}
-                                        >
-                                            {cat.label.clone()}
-                                        </button>
-                                    }
-                                })}
-                            </div>
+                            // 「全部」shows every 科別 at once, so split it into one
+                            // titled section per 科別 (same look as STEP 03's 分類)
+                            // instead of one long undifferentiated grid. A specific
+                            // tab already is a single 科別 and keeps the flat grid.
+                            {if self.selected_group_tab == "全部" {
+                                html! {
+                                    <div class="items-groups cat-groups">
+                                        {for self.groups.iter().map(|group| {
+                                            let members: Vec<&Category> = filtered_categories.iter().copied().filter(|cat| &cat.group == group).collect();
+                                            if members.is_empty() {
+                                                return html! {};
+                                            }
+                                            html! {
+                                                <div class="items-group" key={group.clone()}>
+                                                    <div class="items-group-title">
+                                                        {group.clone()}
+                                                        <span class="cat-group-count">{members.len()}</span>
+                                                    </div>
+                                                    {self.view_category_cluster(ctx, &members)}
+                                                </div>
+                                            }
+                                        })}
+                                    </div>
+                                }
+                            } else {
+                                self.view_category_cluster(ctx, &filtered_categories)
+                            }}
                             {if is_category_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-below") } else { html! {} }}
                         </section>
 
@@ -1785,8 +1912,15 @@ impl Component for App {
                                     <span class={items_tag_class}>{items_tag_label}</span>
                                 </div>
                             </div>
+                            // Sections rather than STEP 02's filter tabs: this is a
+                            // multi-select, and a tab would hide ticks made under
+                            // another 分類.
+                            <div class="items-groups">
+                            {for self.item_groups.iter().map(|group| html! {
+                            <div class="items-group" key={group.clone()}>
+                            <div class="items-group-title">{group.clone()}</div>
                             <div class="items-grid">
-                                {for self.items.iter().map(|item| {
+                                {for self.items.iter().filter(|item| &item.group == group).map(|item| {
                                     let item_id = item.id.clone();
                                     let selected = self.selected_items.contains(&item_id);
                                     html! {
@@ -1811,6 +1945,9 @@ impl Component for App {
                                         </button>
                                     }
                                 })}
+                            </div>
+                            </div>
+                            })}
                             </div>
                             {if is_items_target { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-above") } else { html! {} }}
                         </section>
@@ -2135,7 +2272,7 @@ impl App {
     fn open_editor(&mut self, kind: EditorKind) {
         self.editor = Some(match kind {
             EditorKind::Categories => EditorState::for_categories(&self.categories, &self.groups),
-            EditorKind::Items => EditorState::for_items(&self.items),
+            EditorKind::Items => EditorState::for_items(&self.items, &self.item_groups),
         });
     }
 
@@ -2153,29 +2290,28 @@ impl App {
             return Err(format!("至少需要保留一個{}", noun));
         }
 
-        // 科別 first: categories are checked against the resolved names.
+        // Groups first: rows are checked against the resolved names.
+        let gn = kind.group_noun();
         let mut group_names: Vec<(u32, String)> = Vec::with_capacity(editor.groups.len());
-        if kind == EditorKind::Categories {
-            for (n, g) in editor.groups.iter().enumerate() {
-                let name = g.name.trim().to_string();
-                if name.is_empty() {
-                    return Err(format!("第 {} 個科別的名稱不可空白", n + 1));
-                }
-                if name.chars().count() > MAX_GROUP_CHARS || name == "全部" {
-                    return Err(format!("科別「{}」無效（最多 {} 字，且不可為「全部」）", name, MAX_GROUP_CHARS));
-                }
-                if group_names.iter().any(|(_, existing)| *existing == name) {
-                    return Err(format!("科別「{}」重複了", name));
-                }
-                if !editor.rows.iter().any(|r| r.group == g.key) {
-                    return Err(format!("科別「{}」沒有任何申請類別，請指派類別或刪除此科別", name));
-                }
-                group_names.push((g.key, name));
+        for (n, g) in editor.groups.iter().enumerate() {
+            let name = g.name.trim().to_string();
+            if name.is_empty() {
+                return Err(format!("第 {} 個{}的名稱不可空白", n + 1, gn));
             }
+            if name.chars().count() > MAX_GROUP_CHARS || name == "全部" {
+                return Err(format!("{}「{}」無效（最多 {} 字，且不可為「全部」）", gn, name, MAX_GROUP_CHARS));
+            }
+            if group_names.iter().any(|(_, existing)| *existing == name) {
+                return Err(format!("{}「{}」重複了", gn, name));
+            }
+            if !editor.rows.iter().any(|r| r.group == g.key) {
+                return Err(format!("{}「{}」沒有任何{}，請指派{}或刪除此{}", gn, name, noun, noun, gn));
+            }
+            group_names.push((g.key, name));
         }
 
         let mut labels: HashSet<String> = HashSet::new();
-        let mut rows: Vec<(String, String, String)> = Vec::with_capacity(editor.rows.len());
+        let mut rows: Vec<(String, String, String, String)> = Vec::with_capacity(editor.rows.len());
         for (n, row) in editor.rows.iter().enumerate() {
             let label = row.label.trim().to_string();
             if label.is_empty() {
@@ -2190,15 +2326,15 @@ impl App {
             if !labels.insert(label.clone()) {
                 return Err(format!("「{}」重複了", label));
             }
-            let group = if kind == EditorKind::Categories {
-                match group_names.iter().find(|(key, _)| *key == row.group) {
-                    Some((_, name)) => name.clone(),
-                    None => return Err(format!("「{}」需要選擇科別", label)),
-                }
-            } else {
-                String::new()
+            let group = match group_names.iter().find(|(key, _)| *key == row.group) {
+                Some((_, name)) => name.clone(),
+                None => return Err(format!("「{}」需要選擇{}", label, gn)),
             };
-            rows.push((row.id.clone(), label, group));
+            let sub = row.subgroup.trim().to_string();
+            if sub.chars().count() > MAX_GROUP_CHARS {
+                return Err(format!("子分類「{}」超過 {} 個字", sub, MAX_GROUP_CHARS));
+            }
+            rows.push((row.id.clone(), label, group, sub));
         }
 
         match kind {
@@ -2214,7 +2350,7 @@ impl App {
                 }
                 self.categories = rows
                     .into_iter()
-                    .map(|(id, label, group)| Category { id, label, group })
+                    .map(|(id, label, group, sub)| Category { id, label, group, subgroup: Some(sub) })
                     .collect();
                 self.groups = group_names.into_iter().map(|(_, name)| name).collect();
                 if self.categories == default_categories() {
@@ -2239,12 +2375,18 @@ impl App {
             EditorKind::Items => {
                 self.items = rows
                     .into_iter()
-                    .map(|(id, label, _)| Item { id, label })
+                    .map(|(id, label, group, _)| Item { id, label, group })
                     .collect();
+                self.item_groups = group_names.into_iter().map(|(_, name)| name).collect();
                 if self.items == default_items() {
                     LocalStorage::delete(STORAGE_ITEMS);
                 } else {
                     let _ = LocalStorage::set(STORAGE_ITEMS, &self.items);
+                }
+                if self.item_groups == default_item_groups() {
+                    LocalStorage::delete(STORAGE_ITEM_GROUPS);
+                } else {
+                    let _ = LocalStorage::set(STORAGE_ITEM_GROUPS, &self.item_groups);
                 }
                 let items = &self.items;
                 self.selected_items.retain(|id| items.iter().any(|i| &i.id == id));
@@ -2356,6 +2498,59 @@ impl App {
 
     /// The small pencil capsule in STEP 02/03's head that opens the editor.
     /// Disabled while the tour runs (`Msg::OpenEditor` is inert then anyway).
+    /// One 科別's categories, split under their 子分類 sub-headings in
+    /// first-appearance order. Rows without a 子分類 go last under 其他; a
+    /// 科別 with no 子分類 at all stays one plain grid.
+    fn view_category_cluster(&self, ctx: &Context<Self>, members: &[&Category]) -> Html {
+        let mut subs: Vec<&str> = Vec::new();
+        for cat in members {
+            let t = cat.sub().trim();
+            if !t.is_empty() && !subs.contains(&t) {
+                subs.push(t);
+            }
+        }
+        if subs.is_empty() {
+            return html! {
+                <div class="cat-grid">
+                    {for members.iter().map(|cat| self.view_category_btn(ctx, cat))}
+                </div>
+            };
+        }
+        let has_untitled = members.iter().any(|c| c.sub().trim().is_empty());
+        let sections: Vec<(&str, &str)> = subs
+            .into_iter()
+            .map(|t| (t, t))
+            .chain(has_untitled.then_some(("", FALLBACK_ITEM_GROUP)))
+            .collect();
+        html! {
+            <div class="cat-subs">
+                {for sections.into_iter().map(|(key, title)| html! {
+                    <div class="cat-sub" key={title.to_string()}>
+                        <div class="cat-sub-title">{title}</div>
+                        <div class="cat-grid">
+                            {for members.iter().filter(|c| c.sub().trim() == key).map(|cat| self.view_category_btn(ctx, cat))}
+                        </div>
+                    </div>
+                })}
+            </div>
+        }
+    }
+
+    fn view_category_btn(&self, ctx: &Context<Self>, cat: &Category) -> Html {
+        let cat_id = cat.id.clone();
+        let selected = self.selected_category.as_ref() == Some(&cat_id);
+        html! {
+            <button
+                type="button"
+                class={if selected { "btn opt-btn selected" } else { "btn opt-btn" }}
+                aria-pressed={if selected { "true" } else { "false" }}
+                onclick={ctx.link().callback(move |_| Msg::SelectCategory(cat_id.clone()))}
+            >
+                {cat.label.clone()}
+            </button>
+        }
+    }
+
     fn view_edit_btn(&self, ctx: &Context<Self>, kind: EditorKind) -> Html {
         let label = format!("編輯{}", kind.noun());
         html! {
@@ -2384,11 +2579,13 @@ impl App {
         let kind = editor.kind;
         let noun = kind.noun();
         let is_categories = kind == EditorKind::Categories;
+        let gn = kind.group_noun();
+        let unit = kind.row_unit();
         let last = editor.rows.len().saturating_sub(1);
         let last_group = editor.groups.len().saturating_sub(1);
         let group_display = |g: &EditorGroup| -> String {
             let name = g.name.trim();
-            if name.is_empty() { "（未命名科別）".to_string() } else { name.to_string() }
+            if name.is_empty() { format!("（未命名{}）", gn) } else { name.to_string() }
         };
 
         html! {
@@ -2413,13 +2610,17 @@ impl App {
                     </div>
                     <p class="editor-hint">
                         {"按「儲存」後生效，只保存在這個瀏覽器。括號內的文字不會出現在產生結果，例如「護理師(護士)」會產生「護理師」。"}
-                        {if is_categories { "科別即上方的篩選頁籤，改名時其下的類別會一併跟著。" } else { "自行新增的項目不會自動列出應備文件。" }}
+                        {if is_categories {
+                            "科別即上方的篩選頁籤，改名時其下的類別會一併跟著。"
+                        } else {
+                            "分類即申請項目的分組標題，改名時其下的項目會一併跟著。自行新增的項目不會自動列出應備文件。"
+                        }}
                     </p>
                     <div class="editor-body">
-                    {if is_categories {
+                    {
                         html! {
                             <section class="editor-section">
-                                <div class="editor-section-title">{"科別"}</div>
+                                <div class="editor-section-title">{gn}</div>
                                 <div class="editor-list editor-groups">
                                     {for editor.groups.iter().enumerate().map(|(idx, group)| {
                                         let used = editor.rows.iter().filter(|r| r.group == group.key).count();
@@ -2429,8 +2630,8 @@ impl App {
                                                     <input
                                                         type="text"
                                                         class="input editor-input"
-                                                        placeholder="科別名稱"
-                                                        aria-label={format!("第 {} 個科別名稱", idx + 1)}
+                                                        placeholder={format!("{}名稱", gn)}
+                                                        aria-label={format!("第 {} 個{}名稱", idx + 1, gn)}
                                                         maxlength={MAX_GROUP_CHARS.to_string()}
                                                         value={group.name.clone()}
                                                         oninput={ctx.link().callback(move |e: InputEvent| {
@@ -2439,12 +2640,12 @@ impl App {
                                                         })}
                                                     />
                                                 </div>
-                                                <span class="editor-count">{format!("{} 類", used)}</span>
+                                                <span class="editor-count">{format!("{} {}", used, unit)}</span>
                                                 <div class="editor-row-actions">
                                                     <button
                                                         type="button"
                                                         class="editor-icon-btn"
-                                                        aria-label="科別上移"
+                                                        aria-label={format!("{}上移", gn)}
                                                         disabled={idx == 0}
                                                         onclick={ctx.link().callback(move |_| Msg::EditorMoveGroup(idx, true))}
                                                     >
@@ -2453,7 +2654,7 @@ impl App {
                                                     <button
                                                         type="button"
                                                         class="editor-icon-btn"
-                                                        aria-label="科別下移"
+                                                        aria-label={format!("{}下移", gn)}
                                                         disabled={idx == last_group}
                                                         onclick={ctx.link().callback(move |_| Msg::EditorMoveGroup(idx, false))}
                                                     >
@@ -2462,8 +2663,12 @@ impl App {
                                                     <button
                                                         type="button"
                                                         class="editor-icon-btn editor-icon-btn-danger"
-                                                        aria-label="刪除科別"
-                                                        title={if used > 0 { "請先把此科別的類別改到其他科別或刪除" } else { "刪除科別" }}
+                                                        aria-label={format!("刪除{}", gn)}
+                                                        title={if used > 0 {
+                                                            format!("請先把此{}的{}改到其他{}或刪除", gn, noun, gn)
+                                                        } else {
+                                                            format!("刪除{}", gn)
+                                                        }}
                                                         onclick={ctx.link().callback(move |_| Msg::EditorDeleteGroup(idx))}
                                                     >
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -2480,16 +2685,29 @@ impl App {
                                 </div>
                                 <button type="button" class="btn btn-secondary editor-add" onclick={ctx.link().callback(|_| Msg::EditorAddGroup)}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                                    {"新增科別"}
+                                    {format!("新增{}", gn)}
                                 </button>
                             </section>
                         }
-                    } else {
-                        html! {}
-                    }}
+                    }
                     <section class="editor-section">
-                    {if is_categories {
-                        html! { <div class="editor-section-title">{noun}</div> }
+                    <div class="editor-section-title">{noun}</div>
+                    {if editor.kind == EditorKind::Categories {
+                        // Suggestions for the 子分類 field: the names already
+                        // in this draft, so siblings are one pick away and a
+                        // typo doesn't quietly start a new sub-heading.
+                        let mut subs: Vec<&str> = Vec::new();
+                        for r in &editor.rows {
+                            let t = r.subgroup.trim();
+                            if !t.is_empty() && !subs.contains(&t) {
+                                subs.push(t);
+                            }
+                        }
+                        html! {
+                            <datalist id="editorSubgroups">
+                                {for subs.into_iter().map(|t| html! { <option value={t.to_string()} /> })}
+                            </datalist>
+                        }
                     } else {
                         html! {}
                     }}
@@ -2510,19 +2728,19 @@ impl App {
                                                 Msg::EditorUpdateLabel(idx, input.value())
                                             })}
                                         />
-                                        {if is_categories {
+                                        {{
                                             let current = row.group;
                                             html! {
                                                 <select
                                                     class="input editor-input editor-group-input"
-                                                    aria-label={format!("第 {} 列科別", idx + 1)}
+                                                    aria-label={format!("第 {} 列{}", idx + 1, gn)}
                                                     onchange={ctx.link().callback(move |e: Event| {
                                                         let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
                                                         Msg::EditorUpdateGroup(idx, select.value().parse().unwrap_or(0))
                                                     })}
                                                 >
                                                     {if editor.groups.iter().all(|g| g.key != current) {
-                                                        html! { <option value="0" selected=true disabled=true>{"選擇科別"}</option> }
+                                                        html! { <option value="0" selected=true disabled=true>{format!("選擇{}", gn)}</option> }
                                                     } else {
                                                         html! {}
                                                     }}
@@ -2532,6 +2750,23 @@ impl App {
                                                         </option>
                                                     })}
                                                 </select>
+                                            }
+                                        }}
+                                        {if editor.kind == EditorKind::Categories {
+                                            html! {
+                                                <input
+                                                    type="text"
+                                                    class="input editor-input editor-sub-input"
+                                                    placeholder="子分類"
+                                                    list="editorSubgroups"
+                                                    aria-label={format!("第 {} 列子分類", idx + 1)}
+                                                    maxlength={MAX_GROUP_CHARS.to_string()}
+                                                    value={row.subgroup.clone()}
+                                                    oninput={ctx.link().callback(move |e: InputEvent| {
+                                                        let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                                        Msg::EditorUpdateSubgroup(idx, input.value())
+                                                    })}
+                                                />
                                             }
                                         } else {
                                             html! {}
