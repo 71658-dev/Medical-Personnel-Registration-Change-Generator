@@ -6,8 +6,10 @@
 // ═══════════════════════════════════════════════════
 
 // 快取版本號（每次更新內容時遞增此值）
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `medgen-cache-${CACHE_VERSION}`;
+// WARM_CACHE 單次訊息最多補快取的網址數
+const WARM_CACHE_MAX_URLS = 50;
 
 // 預快取的核心資源（安裝時一次性快取）
 // 註：Trunk 產生的雜湊檔名（index-<hash>.js、index_bg-<hash>.wasm、
@@ -53,9 +55,22 @@ self.addEventListener('message', (event) => {
     const data = event.data;
     if (!data || data.type !== 'WARM_CACHE' || !Array.isArray(data.urls)) return;
 
+    // 只收同源網址，並限制筆數：訊息內容不可盡信，
+    // 不能讓頁面端把任意網址塞進快取。
+    const urls = data.urls
+        .filter(url => {
+            if (typeof url !== 'string') return false;
+            try {
+                return new URL(url, self.location.href).origin === self.location.origin;
+            } catch (e) {
+                return false;
+            }
+        })
+        .slice(0, WARM_CACHE_MAX_URLS);
+
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache =>
-            Promise.all(data.urls.map(url =>
+            Promise.all(urls.map(url =>
                 cache.match(url).then(hit =>
                     // 已在快取中就跳過；個別失敗不影響其他資源
                     hit ? null : cache.add(url).catch(() => null)

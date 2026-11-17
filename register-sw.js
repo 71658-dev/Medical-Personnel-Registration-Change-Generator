@@ -18,7 +18,12 @@
 
         var urls = performance.getEntriesByType('resource')
             .map(function (entry) { return entry.name; })
-            .filter(function (name) { return name.indexOf(location.origin) === 0; });
+            .filter(function (name) {
+                // 比對 origin 本身，而非字串前綴（前綴比對會放行
+                // https://<origin>.evil.com 這類網址）
+                try { return new URL(name).origin === location.origin; }
+                catch (e) { return false; }
+            });
 
         if (urls.length) worker.postMessage({ type: 'WARM_CACHE', urls: urls });
     }

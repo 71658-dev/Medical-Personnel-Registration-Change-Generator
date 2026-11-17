@@ -6,10 +6,10 @@ on:
       - main
       - master
 
+# 預設只給唯讀；部署所需的 pages / id-token 權限只授予 deploy job，
+# build job（會執行第三方 action 與 build script）拿不到。
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
@@ -23,17 +23,19 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        # 第三方 action 一律釘 commit SHA（tag 可被改指向別的 commit）
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
+          toolchain: stable
           targets: wasm32-unknown-unknown
 
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
 
       - name: Install Trunk
-        uses: jetli/trunk-action@v0.5.1
+        uses: jetli/trunk-action@1346cc09eace4beb84e403e199a471346d4684c9 # v0.5.1
         with:
-          version: 'latest'
+          version: 'v0.22.1'
 
       - name: Build Project
         # 這裡的 --public-url 必須符合你的 GitHub 儲存庫名稱
@@ -53,6 +55,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

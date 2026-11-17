@@ -1133,10 +1133,16 @@ impl Component for App {
                 true
             }
             Msg::ClearHistory => {
+                // Both keys hold applicant names (personal data), so 清除 has
+                // to take the 最近使用 list with it — and delete the keys
+                // rather than leave empty arrays behind.
                 self.copy_history.clear();
-                let _ = LocalStorage::set("medgen_history", &self.copy_history);
+                self.recent_names.clear();
+                self.name_suggestions_open = false;
+                LocalStorage::delete("medgen_history");
+                LocalStorage::delete("medgen_names");
                 self.toast = Some(ToastState {
-                    message: "已清除複製紀錄".to_string(),
+                    message: "已清除複製紀錄與最近使用姓名".to_string(),
                     is_error: false,
                 });
                 self.schedule_toast_clear(ctx);

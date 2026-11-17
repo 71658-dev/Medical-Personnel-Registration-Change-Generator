@@ -27,7 +27,8 @@ const server = http.createServer((req, res) => {
   const filePath = path.join(distDir, safeUrl);
   
   // Verify the file is within the dist directory
-  if (!filePath.startsWith(distDir)) {
+  // (compare with a trailing separator, or a sibling like dist-old/ would pass)
+  if (filePath !== distDir && !filePath.startsWith(distDir + path.sep)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Access Denied');
     return;
@@ -57,6 +58,7 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+// Loopback only: this is a local test server, not something for the LAN.
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Test server running at http://localhost:${PORT}/`);
 });
