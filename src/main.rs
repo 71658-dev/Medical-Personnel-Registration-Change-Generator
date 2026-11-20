@@ -379,8 +379,8 @@ const TUTORIAL_STEPS: &[TutorialStep] = &[
         target: Some(TourTarget::Items),
     },
     TutorialStep {
-        title: "複製文字",
-        body: "三個欄位都填好後會自動複製到剪貼簿；也可以直接按這個按鈕立即複製。",
+        title: "自動複製",
+        body: "三個欄位都填好就會自動複製到剪貼簿，這裡會變成綠色的「已複製」——直接到公文系統貼上即可，不用再按任何按鈕。之後改了選項，剪貼簿也會跟著更新。",
         target: Some(TourTarget::Copy),
     },
     TutorialStep {
@@ -390,7 +390,7 @@ const TUTORIAL_STEPS: &[TutorialStep] = &[
     },
     TutorialStep {
         title: "核心流程介紹完了",
-        body: "複製紀錄、Ctrl+Enter 快捷鍵等功能，會在您第一次用到時另外提示一次；之後想重看導覽，按右上角「教學」按鈕即可。",
+        body: "複製紀錄等功能，會在您第一次用到時另外提示一次；之後想重看導覽，按右上角「教學」按鈕即可。",
         target: None,
     },
 ];
@@ -539,6 +539,35 @@ async fn copy_to_clipboard_async(text: String) -> Result<(), JsValue> {
     Ok(())
 }
 
+/// What the clipboard holds relative to the form — shown in place of a
+/// copy button, because a permanent button made people press it even
+/// though auto-copy had already run.
+#[derive(Clone, Copy, PartialEq)]
+enum ClipStatus {
+    /// Something is still missing; nothing will be copied yet.
+    Incomplete,
+    /// Complete, auto-copy debounce still running.
+    Pending,
+    /// The clipboard holds exactly the current text.
+    Copied,
+    /// The browser refused the automatic copy; a real button is offered.
+    Failed,
+}
+
+fn clip_icon(status: ClipStatus) -> Html {
+    let body = match status {
+        ClipStatus::Incomplete => html! { <circle cx="12" cy="12" r="8.5" stroke-dasharray="3 3"/> },
+        ClipStatus::Pending => html! { <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/> },
+        ClipStatus::Copied => html! { <path d="M5 13l4 4L19 7"/> },
+        ClipStatus::Failed => html! { <><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></> },
+    };
+    html! {
+        <svg class="clip-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            {body}
+        </svg>
+    }
+}
+
 // ═══════════════════════════════════════════════════
 // COMPONENT
 // ═══════════════════════════════════════════════════
@@ -554,6 +583,7 @@ enum Msg {
     CopyError,
     AutoCopy,
     AutoCopySuccess(String),
+    AutoCopyFailed(String),
     CopyFromHistory(String),
     ToggleHistory,
     ClearHistory,
@@ -580,7 +610,7 @@ enum Msg {
     DemoPulseCopyOff(u32),
     DemoCheckDoc(u32, usize),
     DismissHistoryCoach,
-    DismissShortcutCoach,
+    DismissAutoCopyCoach,
     OpenEditor(EditorKind),
     CloseEditor,
     EditorAddRow,
@@ -768,7 +798,7 @@ struct App {
     // (history has an entry / the form is complete) rather than during the
     // tour, and persisted so dismissing one is permanent.
     history_coach_dismissed: bool,
-    shortcut_coach_dismissed: bool,
+    autocopy_coach_dismissed: bool,
     name_ref: NodeRef,
     // Set when something should hand focus back to the name input on the next
     // render (see `rendered`); first render focuses unconditionally.
@@ -780,6 +810,13 @@ struct App {
     // What the clipboard currently holds, so an auto-copy never repeats itself
     // and never fights a manual copy of the same text.
     last_copied_text: String,
+    // The text whose automatic copy the browser refused (it wants a user
+    // gesture). While it still matches the form, the status offers a real
+    // 複製主旨 button — the only time a copy button is shown at all.
+    auto_copy_failed: Option<String>,
+    // The latest copy replaced an earlier one for the same 申請人, so the
+    // status reads 剪貼簿已更新 rather than 已複製.
+    clipboard_updated: bool,
     toast_timeout: Option<Timeout>,
     morph_timeout: Option<Timeout>,
     suggestions_timeout: Option<Timeout>,
@@ -812,7 +849,7 @@ impl Component for App {
 
         let tutorial_seen: bool = LocalStorage::get::<bool>("medgen_tutorial_seen").unwrap_or(false);
         let history_coach_dismissed: bool = LocalStorage::get::<bool>("medgen_history_coach_seen").unwrap_or(false);
-        let shortcut_coach_dismissed: bool = LocalStorage::get::<bool>("medgen_shortcut_coach_seen").unwrap_or(false);
+        let autocopy_coach_dismissed: bool = LocalStorage::get::<bool>("medgen_autocopy_coach_seen").unwrap_or(false);
 
         // Keydown shortcut setup: Ctrl/Cmd + Enter copies; Escape closes the
         // tour; ←/→/Enter step through it. The closure can't read component
@@ -911,11 +948,13 @@ impl Component for App {
             demo_gen: 0,
             demo_copy_pulse: false,
             history_coach_dismissed,
-            shortcut_coach_dismissed,
+            autocopy_coach_dismissed,
             name_ref: NodeRef::default(),
             focus_name_pending: false,
             suppress_focus_suggestions: false,
             last_copied_text: String::new(),
+            auto_copy_failed: None,
+            clipboard_updated: false,
             toast_timeout: None,
             morph_timeout: None,
             suggestions_timeout: None,
@@ -1030,26 +1069,11 @@ impl Component for App {
             }
             Msg::CopySuccess(text) => {
                 // Keeps the debounced auto-copy from immediately repeating this
+                self.clipboard_updated = false;
                 self.last_copied_text = text.clone();
                 self.auto_copy_timeout = None;
-
-                // Add to history list
-                self.copy_history.retain(|h| h.text != text);
-                let now = js_sys::Date::now() as u64;
-                self.copy_history.insert(0, HistoryEntry { text: text.clone(), time: now });
-                if self.copy_history.len() > 20 {
-                    self.copy_history.truncate(20);
-                }
-                let _ = LocalStorage::set("medgen_history", &self.copy_history);
-
-                // Add to recent names
-                let name = self.applicant_name.trim().to_string();
-                self.recent_names.retain(|n| n != &name);
-                self.recent_names.insert(0, name);
-                if self.recent_names.len() > 8 {
-                    self.recent_names.truncate(8);
-                }
-                let _ = LocalStorage::set("medgen_names", &self.recent_names);
+                self.auto_copy_failed = None;
+                self.record_copy(&text);
 
                 // Show toast
                 self.toast = Some(ToastState {
@@ -1061,12 +1085,7 @@ impl Component for App {
                 // Hand focus back so the next 申請人 can be typed straight away
                 self.focus_name_pending = true;
 
-                // Morph copy button
-                self.copied_morph = true;
-                let link = ctx.link().clone();
-                self.morph_timeout = Some(Timeout::new(1600, move || {
-                    link.send_message(Msg::ResetMorph);
-                }));
+                self.bump_status(ctx);
 
                 true
             }
@@ -1079,6 +1098,11 @@ impl Component for App {
                 true
             }
             Msg::AutoCopy => {
+                // Same rule as Msg::CopyText: nothing reaches the clipboard
+                // while the tour owns the fields. close_tour re-arms this.
+                if self.tutorial_step.is_some() || self.editor.is_some() {
+                    return false;
+                }
                 // Re-check: the debounce may have been armed before a later
                 // edit made the form incomplete again.
                 let (text, is_complete) = get_generated_text(
@@ -1096,25 +1120,37 @@ impl Component for App {
                 let text_clone = text.clone();
                 let link = ctx.link().clone();
                 wasm_bindgen_futures::spawn_local(async move {
-                    // Failure stays silent on purpose. The user never asked for
-                    // this copy, so nagging them with an error toast (browsers
-                    // that require a user gesture reject it every time) would be
-                    // pure noise — the copy button still reports its own errors.
-                    if copy_to_clipboard_async(text_clone).await.is_ok() {
-                        link.send_message(Msg::AutoCopySuccess(text));
+                    // No error toast — browsers that require a user gesture
+                    // reject this every time, and a toast per edit would be
+                    // noise. Instead the status turns amber and becomes the
+                    // one place a 複製主旨 button appears (see AutoCopyFailed).
+                    match copy_to_clipboard_async(text_clone).await {
+                        Ok(_) => link.send_message(Msg::AutoCopySuccess(text)),
+                        Err(_) => link.send_message(Msg::AutoCopyFailed(text)),
                     }
                 });
                 false
             }
             Msg::AutoCopySuccess(text) => {
+                // An earlier copy for the same 申請人 means this one revises
+                // the same case — say 已更新, not 已複製 again.
+                let case_prefix = format!("{}申辦", self.applicant_name.trim());
+                self.clipboard_updated = !self.last_copied_text.is_empty()
+                    && self.last_copied_text.starts_with(&case_prefix)
+                    && self.last_copied_text != text;
                 self.last_copied_text = text.clone();
-                // Deliberately not recorded in 複製紀錄 / 最近使用 — those stay
-                // reserved for copies the user pressed the button for.
-                self.toast = Some(ToastState {
-                    message: format!("已自動複製：{}", text),
-                    is_error: false,
-                });
-                self.schedule_toast_clear(ctx);
+                self.auto_copy_failed = None;
+                // Recorded like a manual copy, but as an upsert per case (see
+                // record_copy) so ticking items one by one leaves one entry.
+                self.record_copy(&text);
+                // No toast: the result card's status turns green and stays
+                // that way, which is what stops people pressing a button
+                // "just to be sure". The bump is the only motion.
+                self.bump_status(ctx);
+                true
+            }
+            Msg::AutoCopyFailed(text) => {
+                self.auto_copy_failed = Some(text);
                 true
             }
             Msg::CopyFromHistory(text) => {
@@ -1341,9 +1377,9 @@ impl Component for App {
                 let _ = LocalStorage::set("medgen_history_coach_seen", &true);
                 true
             }
-            Msg::DismissShortcutCoach => {
-                self.shortcut_coach_dismissed = true;
-                let _ = LocalStorage::set("medgen_shortcut_coach_seen", &true);
+            Msg::DismissAutoCopyCoach => {
+                self.autocopy_coach_dismissed = true;
+                let _ = LocalStorage::set("medgen_autocopy_coach_seen", &true);
                 true
             }
             Msg::OpenEditor(kind) => {
@@ -1675,8 +1711,62 @@ impl Component for App {
         let is_docs_target = tour_kind == Some(TourTarget::Docs);
         let mobile_bar_lifted = is_copy_target && !is_desktop;
 
-        let show_history_coach = !self.copy_history.is_empty() && tour_idx.is_none() && !self.history_coach_dismissed;
-        let show_shortcut_coach = is_complete && tour_idx.is_none() && !self.shortcut_coach_dismissed;
+        // Held back until the auto-copy tip is dismissed: both would otherwise
+        // appear on the very first copy, and two tips at once is one too many.
+        let show_history_coach = !self.copy_history.is_empty() && tour_idx.is_none() && !self.history_coach_dismissed && self.autocopy_coach_dismissed;
+        let (final_text, _) = get_generated_text(
+            &self.applicant_name,
+            &self.selected_category,
+            &self.selected_items,
+            &self.categories,
+            &self.items,
+            false,
+        );
+        // During the tour nothing is really copied, but the Copy step should
+        // still show what a finished form looks like — so a complete demo
+        // form reads as Copied.
+        let clip_status = if !is_complete {
+            ClipStatus::Incomplete
+        } else if tour_idx.is_some() || final_text == self.last_copied_text {
+            ClipStatus::Copied
+        } else if self.auto_copy_failed.as_deref() == Some(final_text.as_str()) {
+            ClipStatus::Failed
+        } else {
+            ClipStatus::Pending
+        };
+        let missing: Vec<&str> = {
+            let mut m = Vec::new();
+            if self.applicant_name.trim().is_empty() { m.push("姓名"); }
+            if self.selected_category.is_none() { m.push("申請類別"); }
+            if self.selected_items.is_empty() || m.is_empty() { m.push("申請項目"); }
+            m
+        };
+        let updated = self.clipboard_updated && tour_idx.is_none();
+        let clip_text: String = match clip_status {
+            ClipStatus::Incomplete if !has_any_input => "填完三項後會自動複製".to_string(),
+            ClipStatus::Incomplete => format!("還差{}，填完會自動複製", missing.join("、")),
+            ClipStatus::Pending => "正在複製…".to_string(),
+            ClipStatus::Copied if updated => "剪貼簿已更新，可直接貼上".to_string(),
+            ClipStatus::Copied => "已複製，可直接貼上".to_string(),
+            ClipStatus::Failed => "瀏覽器未允許自動複製".to_string(),
+        };
+        let clip_short: &str = match clip_status {
+            ClipStatus::Incomplete => "未完成",
+            ClipStatus::Pending => "複製中…",
+            ClipStatus::Copied if updated => "已更新",
+            ClipStatus::Copied => "已複製",
+            ClipStatus::Failed => "未複製",
+        };
+        let clip_class = match clip_status {
+            ClipStatus::Incomplete => "clip-incomplete",
+            ClipStatus::Pending => "clip-pending",
+            ClipStatus::Copied => "clip-copied",
+            ClipStatus::Failed => "clip-failed",
+        };
+        let is_copied = clip_status == ClipStatus::Copied;
+        // First-run explanation of auto-copy, shown the first time it has
+        // actually happened, so it points at a real green status.
+        let show_autocopy_coach = is_copied && tour_idx.is_none() && !self.autocopy_coach_dismissed;
 
         html! {
             <div class="app-shell">
@@ -1965,50 +2055,43 @@ impl Component for App {
                         <section id="resultCard" class={classes!("card", (is_copy_target && is_desktop).then_some("tutorial-target"))}>
                             <div class="card-head card-head-center">
                                 <div class="card-title">{"產生結果"}</div>
-                                <span class={if is_complete { "tag tag-accent" } else { "tag tag-neutral" }}>
-                                    {if is_complete { "可複製" } else { "未完成" }}
+                                <span class={if is_copied { "tag tag-accent" } else { "tag tag-neutral" }}>
+                                    {clip_short}
                                 </span>
                             </div>
-                            <div class="preview-box">
+                            <div class={classes!("preview-box", is_copied.then_some("copied"))}>
                                 <p id="outputResult" class={classes!("preview-text", (!show_result).then_some("placeholder"))}>
                                     {desktop_preview_text}
                                 </p>
                             </div>
-                            <div class="copy-btn-anchor">
+                            <div class="copy-btn-anchor coach-anchor">
                                 {if self.demo_copy_pulse { html! { <div class="copy-pulse-ring"></div> } } else { html! {} }}
-                                <button
-                                    class={classes!("btn", "btn-block", "btn-copy", self.copied_morph.then_some("copied"))}
-                                    id="desktopCopyBtn"
-                                    disabled={!is_complete}
-                                    onclick={ctx.link().callback(|_| Msg::CopyText)}
-                                >
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        {if self.copied_morph {
-                                            html! { <path d="M5 13l4 4L19 7"/> }
-                                        } else {
-                                            html! {
-                                                <>
-                                                    <rect x="9" y="9" width="13" height="13" rx="1"/>
-                                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                                </>
-                                            }
-                                        }}
-                                    </svg>
-                                    {if self.copied_morph { "已複製！" } else { "複製文字" }}
-                                </button>
-                            </div>
-                            <div class="coach-anchor">
-                                <div id="shortcutHint" class="shortcut-hint">
-                                    <span class="key-cap">{"Ctrl"}</span>
-                                    <span>{"+"}</span>
-                                    <span class="key-cap">{"Enter"}</span>
-                                    <span>{"快速複製"}</span>
+                                <div id="clipStatus" class={classes!("clip-status", clip_class, (self.copied_morph && is_copied).then_some("bump"))} role="status" aria-live="polite">
+                                    {clip_icon(clip_status)}
+                                    <span class="clip-status-text">{clip_text.clone()}</span>
                                 </div>
-                                {if show_shortcut_coach {
+                                {match clip_status {
+                                    ClipStatus::Copied if tour_idx.is_none() => html! {
+                                        <button type="button" class="clip-recopy" onclick={ctx.link().callback(|_| Msg::CopyText)}>
+                                            {"再複製一次"}
+                                        </button>
+                                    },
+                                    ClipStatus::Failed => html! {
+                                        <button
+                                            class="btn btn-block btn-copy"
+                                            id="desktopCopyBtn"
+                                            onclick={ctx.link().callback(|_| Msg::CopyText)}
+                                        >
+                                            {"複製主旨"}
+                                        </button>
+                                    },
+                                    _ => html! {},
+                                }}
+                                {if show_autocopy_coach {
                                     html! {
                                         <div class="coach-mark coach-mark-shortcut">
-                                            <p class="coach-mark-text">{"填完三個欄位後，直接按 Ctrl（Mac 為 ⌘）+ Enter 也能快速複製。"}</p>
-                                            <button type="button" class="coach-mark-dismiss" onclick={ctx.link().callback(|_| Msg::DismissShortcutCoach)}>{"知道了"}</button>
+                                            <p class="coach-mark-text">{"填完三項就會自動複製到剪貼簿。看到這裡變綠色寫著「已複製」，直接到公文系統貼上即可，不用再按按鈕。"}</p>
+                                            <button type="button" class="coach-mark-dismiss" onclick={ctx.link().callback(|_| Msg::DismissAutoCopyCoach)}>{"知道了"}</button>
                                         </div>
                                     }
                                 } else {
@@ -2143,7 +2226,7 @@ impl Component for App {
                         id="mobilePreview"
                         class={if !show_result {
                             "mobile-preview placeholder"
-                        } else if is_complete {
+                        } else if is_copied {
                             "mobile-preview ready"
                         } else {
                             "mobile-preview"
@@ -2151,26 +2234,29 @@ impl Component for App {
                     >
                         {mobile_preview_text}
                     </div>
-                    <button
-                        class={classes!("btn", "btn-copy", "mobile-copy-btn", self.copied_morph.then_some("copied"), (is_copy_target && !is_desktop).then_some("tutorial-target"))}
-                        id="mobileCopyBtn"
-                        disabled={!is_complete}
-                        onclick={ctx.link().callback(|_| Msg::CopyText)}
-                    >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            {if self.copied_morph {
-                                html! { <path d="M5 13l4 4L19 7"/> }
-                            } else {
-                                html! {
-                                    <>
-                                        <rect x="9" y="9" width="13" height="13" rx="1"/>
-                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                    </>
-                                }
-                            }}
-                        </svg>
-                        {if self.copied_morph { "已複製！" } else { "複製文字" }}
-                    </button>
+                    {if clip_status == ClipStatus::Failed {
+                        html! {
+                            <button
+                                class={classes!("btn", "btn-copy", "mobile-copy-btn", (is_copy_target && !is_desktop).then_some("tutorial-target"))}
+                                id="mobileCopyBtn"
+                                onclick={ctx.link().callback(|_| Msg::CopyText)}
+                            >
+                                {"複製主旨"}
+                            </button>
+                        }
+                    } else {
+                        html! {
+                            <div
+                                id="mobileCopyBtn"
+                                class={classes!("mobile-clip-status", clip_class, (self.copied_morph && is_copied).then_some("bump"), (is_copy_target && !is_desktop).then_some("tutorial-target"))}
+                                role="status"
+                                aria-live="polite"
+                            >
+                                {clip_icon(clip_status)}
+                                <span>{clip_text.clone()}</span>
+                            </div>
+                        }
+                    }}
                     {if is_copy_target && !is_desktop { self.view_tour_panel(ctx, tour_idx.unwrap(), "tutorial-panel-above tutorial-panel-mobile-copy") } else { html! {} }}
                 </div>
 
@@ -2229,6 +2315,9 @@ impl App {
     /// clipboard.
     fn schedule_auto_copy(&mut self, ctx: &Context<Self>) {
         self.auto_copy_timeout = None;
+        if self.tutorial_step.is_some() {
+            return;
+        }
 
         let (text, is_complete) = get_generated_text(
             &self.applicant_name,
@@ -2245,6 +2334,42 @@ impl App {
         let link = ctx.link().clone();
         self.auto_copy_timeout = Some(Timeout::new(AUTO_COPY_DELAY_MS, move || {
             link.send_message(Msg::AutoCopy);
+        }));
+    }
+
+    /// Writes a copy into 複製紀錄 and 最近使用. Both copy paths call this;
+    /// the newest entry is *replaced* rather than pushed down when it is the
+    /// same 申請人 (same `姓名申辦` prefix), so auto-copy firing after each
+    /// ticked item leaves just the final text for that case. The name is
+    /// read off the text, not the form: a re-copy from 複製紀錄 lands here
+    /// too and may belong to someone else.
+    fn record_copy(&mut self, text: &str) {
+        let name = text.split("申辦").next().unwrap_or("").trim().to_string();
+        if name.is_empty() {
+            return;
+        }
+        let case_prefix = format!("{}申辦", name);
+        if self.copy_history.first().is_some_and(|h| h.text.starts_with(&case_prefix)) {
+            self.copy_history.remove(0);
+        }
+        self.copy_history.retain(|h| h.text != text);
+        let now = js_sys::Date::now() as u64;
+        self.copy_history.insert(0, HistoryEntry { text: text.to_string(), time: now });
+        self.copy_history.truncate(20);
+        let _ = LocalStorage::set("medgen_history", &self.copy_history);
+
+        self.recent_names.retain(|n| n != &name);
+        self.recent_names.insert(0, name);
+        self.recent_names.truncate(8);
+        let _ = LocalStorage::set("medgen_names", &self.recent_names);
+    }
+
+    /// Brief bounce on the clipboard status after any successful copy.
+    fn bump_status(&mut self, ctx: &Context<Self>) {
+        self.copied_morph = true;
+        let link = ctx.link().clone();
+        self.morph_timeout = Some(Timeout::new(1600, move || {
+            link.send_message(Msg::ResetMorph);
         }));
     }
 
